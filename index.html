@@ -141,6 +141,12 @@
     .admin-list{display:grid;gap:12px}
     .admin-course{border:1px solid #bbb;border-radius:18px;padding:17px}
     .admin-course h3{margin:0 0 10px;font-size:1.2rem}
+    .admin-course-title{border:0;background:transparent;padding:0;text-align:left;font:inherit;font-weight:900;color:var(--text);text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:5px;cursor:pointer}
+    .admin-course-title:focus-visible{outline:3px solid #93b4e8;outline-offset:4px;border-radius:4px}
+    .admin-combined-summary{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 2px}
+    .admin-summary-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid #bbb;border-radius:999px;padding:7px 11px;background:#fff;font-weight:900}
+    .admin-summary-chip.accepted{border-color:#9bb8df;background:#f2f7ff}
+    .admin-summary-chip.waiting{border-color:#e2b06f;background:#fff8ed}
     .admin-counts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
     .number-btn{border:1.5px solid #777;border-radius:13px;background:#fff;padding:10px 5px;text-align:center;font-weight:900}
     .number-btn span{display:block;font-size:.8rem;color:var(--muted)}
@@ -325,7 +331,7 @@
     <section id="page-admin" class="page" aria-labelledby="adminTitle">
       <div class="page-head">
         <button class="back-btn" data-go="home">← 처음</button>
-        <div><h2 class="page-title" id="adminTitle">신청자 현황</h2><p class="page-desc">숫자를 누르면 신청자 정보를 확인할 수 있습니다.</p></div>
+        <div><h2 class="page-title" id="adminTitle">신청자 현황</h2><p class="page-desc">프로그램명을 누르면 신청자와 대기자 정보를 한 화면에서 함께 확인할 수 있습니다.</p></div>
       </div>
       <div id="adminCourseList" class="admin-list"></div>
       <div class="btn-row"><button id="excelDownload" class="primary full" type="button">전체 신청자 엑셀 다운로드</button></div>
@@ -562,24 +568,18 @@
       });
       const filtered=sorted.filter(c=>currentCourseTab==='closed' ? isCourseClosed(c) : !isCourseClosed(c));
       if(!filtered.length){box.innerHTML=`<div class="empty">${currentCourseTab==='closed'?'현재 마감된 강좌가 없습니다.':'현재 신청 가능한 강좌가 없습니다.'}</div>`;return;}
-      if(currentCourseTab==='closed'){
-        box.innerHTML=filtered.map(c=>`<article class="course-card closed-course">
-          <h3 class="course-name"><button type="button" data-detail="${esc(c.id)}">${esc(c.program_name)}</button><span class="closed-badge">마감</span></h3>
+
+      box.innerHTML=filtered.map(c=>{
+        const closed=isCourseClosed(c);
+        return `<article class="course-card${closed?' closed-course':''}">
+          <h3 class="course-name"><button type="button" data-detail="${esc(c.id)}">${esc(c.program_name)}</button>${closed?'<span class="closed-badge">마감</span>':`<span class="open-badge">${num(c.accepted_count)>=num(c.capacity)?'대기접수':'신청중'}</span>`}</h3>
           <div class="meta"><div><b>날짜</b>${esc(dateText(c.education_date))}</div><div><b>요일</b>${esc(c.weekday)}</div><div><b>시간</b>${esc(educationTimeText(c))}</div><div><b>장소</b>${esc(c.location)}</div><div><b>멘토</b>${esc(c.mentor_name||'-')}</div></div>
           <div class="counts"><div class="count"><span>모집</span><strong>${num(c.capacity)}명</strong></div><div class="count"><span>신청</span><strong>${num(c.accepted_count)}명</strong></div><div class="count"><span>대기</span><strong>${num(c.waiting_count)} / 2명</strong></div></div>
           ${renderPublicStatus(c.id)}
-          <div class="btn-row"><button class="secondary full" type="button" disabled>신청마감 · ${esc(closeReason(c))}</button></div>
-        </article>`).join('');
-        box.querySelectorAll('[data-detail]').forEach(b=>b.addEventListener('click',()=>showCourse(b.dataset.detail)));
-        return;
-      }
-      box.innerHTML=filtered.map(c=>`<article class="course-card">
-        <h3 class="course-name"><button type="button" data-detail="${esc(c.id)}">${esc(c.program_name)}</button><span class="open-badge">${num(c.accepted_count)>=num(c.capacity)?'대기접수':'신청중'}</span></h3>
-        <div class="meta"><div><b>날짜</b>${esc(dateText(c.education_date))}</div><div><b>요일</b>${esc(c.weekday)}</div><div><b>시간</b>${esc(educationTimeText(c))}</div><div><b>장소</b>${esc(c.location)}</div><div><b>멘토</b>${esc(c.mentor_name||'-')}</div></div>
-        <div class="counts"><div class="count"><span>모집</span><strong>${num(c.capacity)}명</strong></div><div class="count"><span>신청</span><strong>${num(c.accepted_count)}명</strong></div><div class="count"><span>대기</span><strong>${num(c.waiting_count)} / 2명</strong></div></div>
-        ${renderPublicStatus(c.id)}
-        <div class="btn-row"><button class="primary full" type="button" data-apply="${esc(c.id)}">신청하기</button></div>
-      </article>`).join('');
+          ${closed?`<div class="notice" style="margin-top:12px;font-size:1rem;line-height:1.55"><b>신청은 마감되었습니다.</b><br>기존 신청자는 위 신청 순서에서 <b>수정하기</b> 또는 <b>취소하기</b>를 이용할 수 있습니다.</div>`:''}
+          <div class="btn-row">${closed?`<button class="secondary full" type="button" disabled>신청마감 · ${esc(closeReason(c))}</button>`:`<button class="primary full" type="button" data-apply="${esc(c.id)}">신청하기</button>`}</div>
+        </article>`;
+      }).join('');
       box.querySelectorAll('[data-detail]').forEach(b=>b.addEventListener('click',()=>showCourse(b.dataset.detail)));
       box.querySelectorAll('[data-apply]').forEach(b=>b.addEventListener('click',()=>startApply(b.dataset.apply)));
     }
@@ -866,12 +866,15 @@
     function renderAdminCourses(){
       const box=$('adminCourseList'); if(!adminSessionCode){go('admin-code');return;}
       if(!courses.length){box.innerHTML='<div class="empty">등록된 강좌가 없습니다.</div>';return;}
-      box.innerHTML=courses.map(c=>`<article class="admin-course"><h3>${esc(c.program_name)}</h3><div class="admin-counts">
-        <button class="number-btn static" type="button"><span>모집</span><strong>${num(c.capacity)}명</strong></button>
-        <button class="number-btn" type="button" data-admin-course="${esc(c.id)}" data-status="신청"><span>신청</span><strong>${num(c.accepted_count)}명</strong></button>
-        <button class="number-btn" type="button" data-admin-course="${esc(c.id)}" data-status="대기"><span>대기</span><strong>${num(c.waiting_count)} / 2명</strong></button>
-      </div></article>`).join('');
-      box.querySelectorAll('[data-admin-course]').forEach(b=>b.addEventListener('click',()=>showApplicants(b.dataset.adminCourse,b.dataset.status)));
+      box.innerHTML=courses.map(c=>`<article class="admin-course">
+        <h3><button class="admin-course-title" type="button" data-admin-all="${esc(c.id)}" aria-label="${esc(c.program_name)} 신청자와 대기자 함께 보기">${esc(c.program_name)}</button></h3>
+        <div class="admin-counts">
+          <button class="number-btn static" type="button"><span>모집</span><strong>${num(c.capacity)}명</strong></button>
+          <button class="number-btn static" type="button"><span>신청</span><strong>${num(c.accepted_count)}명</strong></button>
+          <button class="number-btn static" type="button"><span>대기</span><strong>${num(c.waiting_count)} / 2명</strong></button>
+        </div>
+      </article>`).join('');
+      box.querySelectorAll('[data-admin-all]').forEach(b=>b.addEventListener('click',()=>showAllApplicants(b.dataset.adminAll)));
     }
 
     async function getApplicants(courseId=null){
@@ -883,14 +886,35 @@
       const {data,error}=await sb.rpc('admin_get_applicants',{p_code:adminSessionCode,p_course_id:courseId||null}); if(error) throw error; return data||[];
     }
 
-    async function showApplicants(courseId,status){
+    function adminApplicantRows(rows){
+      if(!rows.length) return '<div class="empty" style="margin-top:12px">해당 신청자가 없습니다.</div>';
+      return `<div class="table-wrap"><table><thead><tr><th>순번</th><th>상태</th><th>이름</th><th>성별</th><th>출생년도</th><th>연락처</th><th>거주지</th><th>차량번호</th><th>신청일시</th><th>관리</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${num(r.sequence)}</td><td><span class="status-chip ${r.status==='대기'?'waiting':'accepted'}">${esc(r.status)}</span></td><td>${esc(r.name)}</td><td>${esc(r.gender)}</td><td>${esc(r.birth_year)}</td><td>${esc(formatPhone(r.phone||''))}</td><td>${esc(r.neighborhood)}</td><td>${esc(r.vehicle_no||'-')}</td><td>${esc(formatDateTime(r.applied_at||r.created_at))}</td><td><button class="danger-lite" type="button" data-admin-cancel="${esc(r.application_id||r.id)}" data-name="${esc(r.name)}" data-course-id="${esc(r.course_id)}" data-status="${esc(r.status)}" style="white-space:nowrap;font-size:1rem;padding:10px 12px">신청취소</button></td></tr>`).join('')}</tbody></table></div>`;
+    }
+
+    async function showAllApplicants(courseId){
       try{
-        const all=await getApplicants(courseId); const rows=all.filter(r=>r.status===status); const c=courses.find(x=>String(x.id)===String(courseId)); adminFilter={courseId,status};
+        const all=await getApplicants(courseId);
+        const c=courses.find(x=>String(x.id)===String(courseId));
+        const accepted=all.filter(r=>r.status==='신청');
+        const waiting=all.filter(r=>r.status==='대기');
+        adminFilter={courseId,status:'전체'};
         const area=$('adminApplicantsArea');
-        if(!rows.length){area.innerHTML=`<h3 style="margin-top:24px">${esc(c?.program_name||'')} · ${esc(status)}자</h3><div class="empty">해당 신청자가 없습니다.</div>`;return;}
-        area.innerHTML=`<h3 style="margin-top:24px">${esc(c?.program_name||'')} · ${esc(status)}자 ${rows.length}명</h3><div class="table-wrap"><table><thead><tr><th>순번</th><th>이름</th><th>성별</th><th>출생년도</th><th>연락처</th><th>거주지</th><th>차량번호</th><th>상태</th><th>신청일시</th><th>관리</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${num(r.sequence)}</td><td>${esc(r.name)}</td><td>${esc(r.gender)}</td><td>${esc(r.birth_year)}</td><td>${esc(formatPhone(r.phone||''))}</td><td>${esc(r.neighborhood)}</td><td>${esc(r.vehicle_no||'-')}</td><td>${esc(r.status)}</td><td>${esc(formatDateTime(r.applied_at||r.created_at))}</td><td><button class="danger-lite" type="button" data-admin-cancel="${esc(r.application_id||r.id)}" data-name="${esc(r.name)}" data-course-id="${esc(r.course_id)}" data-status="${esc(r.status)}" style="white-space:nowrap;font-size:1rem;padding:10px 12px">신청취소</button></td></tr>`).join('')}</tbody></table></div>`;
+        area.innerHTML=`
+          <div style="margin-top:24px">
+            <h3 style="margin:0;font-size:1.35rem">${esc(c?.program_name||'')} · 신청자/대기자 전체</h3>
+            <div class="admin-combined-summary">
+              <span class="admin-summary-chip accepted">신청 ${accepted.length}명</span>
+              <span class="admin-summary-chip waiting">대기 ${waiting.length} / 2명</span>
+            </div>
+          </div>
+          ${all.length?adminApplicantRows(all):'<div class="empty" style="margin-top:14px">현재 신청자와 대기자가 없습니다.</div>'}`;
         area.scrollIntoView({behavior:'smooth',block:'start'});
       }catch(err){console.error(err);toast('신청자 정보를 불러오지 못했습니다.')}
+    }
+
+    async function showApplicants(courseId,status){
+      // 이전 버전의 신청/대기 개별 호출이 남아 있어도 통합 화면으로 보여줍니다.
+      return showAllApplicants(courseId);
     }
 
     function openAdminCancelModal(applicationId,name,courseId,status){
@@ -945,7 +969,7 @@
         await loadCourses(true);
         if($('page-admin').classList.contains('active')){
           renderAdminCourses();
-          await showApplicants(state.courseId,state.status);
+          await showAllApplicants(state.courseId);
         }
         toast('신청취소가 처리되었습니다.');
       }catch(err){
