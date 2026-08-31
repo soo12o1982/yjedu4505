@@ -87,9 +87,22 @@
     .public-status{margin-top:14px;border-top:1px solid #ddd;padding-top:14px}
     .public-status-title{font-weight:900;font-size:1rem;margin-bottom:8px}
     .public-status-list{display:grid;gap:7px}
-    .public-status-row{display:grid;grid-template-columns:62px 1fr 64px;gap:8px;align-items:center;background:#f7f7f7;border-radius:12px;padding:9px 11px;font-size:.94rem}
-    .public-status-row b{text-align:center}
-    .public-status-row .last4{font-weight:900;letter-spacing:.04em}
+    .public-status-row{display:flex;justify-content:space-between;gap:10px;align-items:center;background:#f7f7f7;border-radius:14px;padding:11px 12px;font-size:.96rem}
+    .public-status-main{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+    .public-status-main .seq{font-weight:900;white-space:nowrap}
+    .status-chip{display:inline-flex;align-items:center;border-radius:999px;padding:3px 9px;font-size:.82rem;font-weight:900;white-space:nowrap}
+    .status-chip.accepted{background:var(--blue-soft);color:#174ea6}
+    .status-chip.waiting{background:#fff4df;color:#8a5200}
+    .public-status-row .last4{font-weight:900;letter-spacing:.04em;white-space:nowrap}
+    .student-actions{display:flex;gap:6px;flex:0 0 auto}
+    .student-action-btn{min-height:40px;border:1.5px solid #555;border-radius:11px;background:#fff;padding:7px 10px;font-size:.85rem;font-weight:900;white-space:nowrap}
+    .student-action-btn.cancel{border-color:#b42318;color:#9f1c15}
+    .closed-course .course-name button{opacity:.5}
+    .notice-message{font-size:clamp(1.2rem,5vw,1.5rem);line-height:1.7;font-weight:800;letter-spacing:-.025em;white-space:pre-line}
+    .notice-call{margin-top:15px;font-size:1.12rem;font-weight:900;color:var(--navy)}
+    .pin-box{border:2px solid #111;border-radius:18px;padding:18px;background:#fafafa}
+    .pin-box .field input{font-size:1.45rem;text-align:center;letter-spacing:.35em;font-weight:900}
+    .student-edit-form{display:grid;gap:15px}
     .manage-box{margin:0 0 22px;border:1.5px solid #aaa;border-radius:18px;padding:16px;background:#fafafa}
     .manage-box h3{margin:0 0 10px;font-size:1.16rem}
     .manage-item{border-top:1px solid #ddd;padding:13px 0}
@@ -171,6 +184,9 @@
       .page-head{align-items:flex-start}
       .menu-btn.compact{padding:13px 12px;font-size:.98rem}
       .menu-btn.compact .arrow{font-size:1.35rem}
+      .public-status-row{align-items:flex-start;flex-direction:column}
+      .student-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}
+      .student-action-btn{width:100%;font-size:.92rem;min-height:46px}
     }
   </style>
 </head>
@@ -283,6 +299,11 @@
           </div>
           <label><input id="privacyConsent" type="checkbox" required><span>위 개인정보 수집 및 이용에 동의합니다.</span></label>
         </div>
+        <div class="field">
+          <label for="applicationPin">수정·취소 비밀번호 (숫자 4자리)</label>
+          <input id="applicationPin" type="password" inputmode="numeric" pattern="[0-9]{4}" minlength="4" maxlength="4" autocomplete="new-password" placeholder="숫자 4자리" required />
+          <div class="hint">신청정보를 수정하거나 취소할 때 필요합니다. 꼭 기억해 주세요.</div>
+        </div>
         <button class="primary full" type="submit">신청완료</button>
       </form>
       <div id="applicationResult" class="result-box" style="display:none"></div>
@@ -320,6 +341,21 @@
       <div id="modalBody"></div>
     </div>
   </div>
+
+  <div id="studentModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="studentModalTitle">
+    <div class="modal-card">
+      <div class="modal-head"><h2 id="studentModalTitle">신청정보</h2><button id="closeStudentModal" class="icon-btn" aria-label="닫기">×</button></div>
+      <div id="studentModalBody"></div>
+    </div>
+  </div>
+
+  <div id="noticeModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="noticeModalTitle">
+    <div class="modal-card">
+      <div class="modal-head"><h2 id="noticeModalTitle">안내</h2><button id="closeNoticeModalTop" class="icon-btn" aria-label="닫기">×</button></div>
+      <div id="noticeModalBody"></div>
+      <div class="btn-row"><button id="closeNoticeModal" class="primary full" type="button">닫기</button></div>
+    </div>
+  </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -348,6 +384,7 @@
     let publicApplicants = {};
     let editingCourseId = null;
     let currentCourseTab = 'open';
+    let studentActionState = null;
 
     const $ = (id) => document.getElementById(id);
     const esc = (v='') => String(v).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
@@ -382,6 +419,17 @@
       document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.go)));
       $('closeModal').addEventListener('click',closeCourseModal);
       $('courseModal').addEventListener('click',e=>{if(e.target===$('courseModal'))closeCourseModal()});
+      $('closeStudentModal').addEventListener('click',closeStudentModal);
+      $('studentModal').addEventListener('click',e=>{if(e.target===$('studentModal'))closeStudentModal()});
+      $('closeNoticeModal').addEventListener('click',closeNoticeModal);
+      $('closeNoticeModalTop').addEventListener('click',closeNoticeModal);
+      $('noticeModal').addEventListener('click',e=>{if(e.target===$('noticeModal'))closeNoticeModal()});
+      document.addEventListener('click',e=>{
+        const edit=e.target.closest('[data-student-edit]');
+        if(edit){openStudentAction(edit.dataset.studentEdit,edit.dataset.courseId,'edit');return;}
+        const cancel=e.target.closest('[data-student-cancel]');
+        if(cancel){openStudentAction(cancel.dataset.studentCancel,cancel.dataset.courseId,'cancel');}
+      });
       $('educationDate').addEventListener('change',e=>{$('weekday').value=e.target.value?koWeekday(e.target.value):''});
       $('phone').addEventListener('input',e=>{e.target.value=formatPhone(e.target.value)});
       $('registerCodeForm').addEventListener('submit',verifyRegisterCode);
@@ -503,7 +551,14 @@
       const filtered=sorted.filter(c=>currentCourseTab==='closed' ? isCourseClosed(c) : !isCourseClosed(c));
       if(!filtered.length){box.innerHTML=`<div class="empty">${currentCourseTab==='closed'?'현재 마감된 강좌가 없습니다.':'현재 신청 가능한 강좌가 없습니다.'}</div>`;return;}
       if(currentCourseTab==='closed'){
-        box.innerHTML=filtered.map(c=>`<article class="course-card closed-course"><div class="closed-line"><span class="closed-name">${esc(c.program_name)}</span><span class="closed-badge">마감</span></div></article>`).join('');
+        box.innerHTML=filtered.map(c=>`<article class="course-card closed-course">
+          <h3 class="course-name"><button type="button" data-detail="${esc(c.id)}">${esc(c.program_name)}</button><span class="closed-badge">마감</span></h3>
+          <div class="meta"><div><b>날짜</b>${esc(dateText(c.education_date))}</div><div><b>요일</b>${esc(c.weekday)}</div><div><b>시간</b>${esc(educationTimeText(c))}</div><div><b>장소</b>${esc(c.location)}</div><div><b>멘토</b>${esc(c.mentor_name||'-')}</div></div>
+          <div class="counts"><div class="count"><span>모집</span><strong>${num(c.capacity)}명</strong></div><div class="count"><span>신청</span><strong>${num(c.accepted_count)}명</strong></div><div class="count"><span>대기</span><strong>${num(c.waiting_count)} / 2명</strong></div></div>
+          ${renderPublicStatus(c.id)}
+          <div class="btn-row"><button class="secondary full" type="button" disabled>신청마감 · ${esc(closeReason(c))}</button></div>
+        </article>`).join('');
+        box.querySelectorAll('[data-detail]').forEach(b=>b.addEventListener('click',()=>showCourse(b.dataset.detail)));
         return;
       }
       box.innerHTML=filtered.map(c=>`<article class="course-card">
@@ -520,7 +575,7 @@
     function renderPublicStatus(courseId){
       const rows=publicApplicants[courseId]||[];
       if(!rows.length) return '<div class="public-status"><div class="public-status-title">신청 순서 확인</div><div class="hint">아직 신청자가 없습니다.</div></div>';
-      return `<div class="public-status"><div class="public-status-title">신청 순서 확인 <span class="hint">(휴대폰 끝 4자리)</span></div><div class="public-status-list">${rows.map(r=>`<div class="public-status-row"><b>${num(r.sequence)}번</b><span class="last4">•••• ${esc(r.phone_last4||'')}</span><b>${esc(r.status)}</b></div>`).join('')}</div></div>`;
+      return `<div class="public-status"><div class="public-status-title">신청 순서 확인 <span class="hint">(휴대폰 끝 4자리)</span></div><div class="public-status-list">${rows.map(r=>`<div class="public-status-row"><div class="public-status-main"><span class="seq">${num(r.sequence)}번</span><span class="status-chip ${r.status==='대기'?'waiting':'accepted'}">${esc(r.status)}</span><span class="last4">•••• ${esc(r.phone_last4||'')}</span></div><div class="student-actions"><button class="student-action-btn" type="button" data-student-edit="${esc(r.application_id||'')}" data-course-id="${esc(courseId)}">수정하기</button><button class="student-action-btn cancel" type="button" data-student-cancel="${esc(r.application_id||'')}" data-course-id="${esc(courseId)}">취소하기</button></div></div>`).join('')}</div></div>`;
     }
 
     function showCourse(id){
@@ -541,6 +596,126 @@
       $('courseModal').classList.add('open');
     }
     function closeCourseModal(){$('courseModal').classList.remove('open')}
+    function closeStudentModal(){$('studentModal').classList.remove('open');studentActionState=null;}
+    function closeNoticeModal(){$('noticeModal').classList.remove('open')}
+
+    function showNotice(message,title='안내'){
+      $('noticeModalTitle').textContent=title;
+      $('noticeModalBody').innerHTML=`<div class="notice-message">${esc(message)}</div>`;
+      $('noticeModal').classList.add('open');
+    }
+
+    function showChangeClosedNotice(){
+      showNotice('교육이 곧 시작되는 프로그램으로 직접 수정과 취소 신청이 불가합니다. 멘토 일정이 확정되어 변경이 불가하오니 부득이 변경을 희망하시는 경우 관리자에게 직접 전화바랍니다.(문의 051-665-4505)','수정·취소 안내');
+    }
+
+    function studentChangeAllowed(c){
+      const cutoff=courseCutoff(c);
+      return !cutoff || new Date()<cutoff;
+    }
+
+    function studentErrorCode(err){
+      return String(err?.message||err?.details||err||'');
+    }
+
+    function handleStudentActionError(err){
+      const msg=studentErrorCode(err);
+      if(msg.includes('student_change_closed_by_date')){closeStudentModal();showChangeClosedNotice();return;}
+      if(msg.includes('invalid_application_pin')){toast('비밀번호 4자리가 맞지 않습니다.');return;}
+      if(msg.includes('legacy_pin_missing')){closeStudentModal();showNotice('비밀번호 기능 추가 전에 접수된 신청입니다. 온라인에서 직접 수정하거나 취소할 수 없습니다. 관리자에게 전화로 문의해 주세요.\n\n문의 051-665-4505','기존 신청 안내');return;}
+      if(msg.includes('application_not_found')){closeStudentModal();toast('신청정보를 찾을 수 없습니다.');return;}
+      console.error(err);toast('처리 중 오류가 발생했습니다.');
+    }
+
+    function openStudentAction(applicationId,courseId,action){
+      if(!applicationId){toast('신청정보를 확인할 수 없습니다.');return;}
+      const c=courses.find(x=>String(x.id)===String(courseId));
+      if(c && !studentChangeAllowed(c)){showChangeClosedNotice();return;}
+      studentActionState={applicationId,courseId,action,pin:''};
+      $('studentModalTitle').textContent=action==='edit'?'신청정보 수정':'신청 취소';
+      $('studentModalBody').innerHTML=`<div class="pin-box"><form id="studentPinForm" class="form"><div class="field"><label for="studentPinInput">신청할 때 입력한 비밀번호 4자리</label><input id="studentPinInput" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" placeholder="숫자 4자리" required /></div><div class="hint">본인 확인을 위해 신청할 때 작성한 숫자 4자리를 입력해 주세요.</div>${action==='cancel'?'<div class="notice" style="margin:0">신청을 취소하면 해당 신청정보는 삭제되며 되돌릴 수 없습니다.</div>':''}<button class="${action==='cancel'?'danger-lite':'primary'} full" type="submit">${action==='edit'?'비밀번호 확인 후 수정':'비밀번호 확인 후 취소'}</button></form></div>`;
+      $('studentPinForm').addEventListener('submit',verifyStudentPinAction);
+      $('studentModal').classList.add('open');
+      setTimeout(()=>$('studentPinInput')?.focus(),100);
+    }
+
+    async function verifyStudentPinAction(e){
+      e.preventDefault();
+      if(!studentActionState) return;
+      const pin=String($('studentPinInput')?.value||'').trim();
+      if(!/^\d{4}$/.test(pin)){toast('숫자 4자리 비밀번호를 입력해 주세요.');return;}
+      const {applicationId,courseId,action}=studentActionState;
+      const c=courses.find(x=>String(x.id)===String(courseId));
+      if(c && !studentChangeAllowed(c)){closeStudentModal();showChangeClosedNotice();return;}
+      try{
+        if(action==='cancel'){
+          if(isDemo){
+            const apps=demoGet(DEMO_APP_KEY); const idx=apps.findIndex(a=>String(a.id)===String(applicationId));
+            if(idx<0) throw new Error('application_not_found');
+            if(String(apps[idx].pin||'')!==pin) throw new Error('invalid_application_pin');
+            apps.splice(idx,1);demoSet(DEMO_APP_KEY,apps);
+          }else{
+            const {error}=await sb.rpc('student_cancel_application',{p_application_id:applicationId,p_pin:pin});
+            if(error) throw error;
+          }
+          closeStudentModal();closeCourseModal();await loadCourses(true);toast('신청이 취소되었습니다.');return;
+        }
+        let app;
+        if(isDemo){
+          app=demoGet(DEMO_APP_KEY).find(a=>String(a.id)===String(applicationId));
+          if(!app) throw new Error('application_not_found');
+          if(!app.pin) throw new Error('legacy_pin_missing');
+          if(String(app.pin)!==pin) throw new Error('invalid_application_pin');
+        }else{
+          const {data,error}=await sb.rpc('student_get_application',{p_application_id:applicationId,p_pin:pin});
+          if(error) throw error;
+          app=Array.isArray(data)?data[0]:data;
+          if(!app) throw new Error('application_not_found');
+        }
+        studentActionState.pin=pin;
+        showStudentEditForm(app,c);
+      }catch(err){handleStudentActionError(err)}
+    }
+
+    function showStudentEditForm(app,c){
+      const vehicleVisible=String(c?.location||'').trim()==='거제평생학습관';
+      $('studentModalTitle').textContent='신청정보 수정';
+      $('studentModalBody').innerHTML=`<form id="studentEditForm" class="student-edit-form">
+        <div class="field"><label for="editApplicantName">이름</label><input id="editApplicantName" value="${esc(app.name||'')}" maxlength="40" required /></div>
+        <fieldset style="border:0;padding:0;margin:0"><legend class="legend">성별</legend><div class="radio-grid"><label class="radio-card"><input type="radio" name="editGender" value="남" ${app.gender==='남'?'checked':''} required> 남</label><label class="radio-card"><input type="radio" name="editGender" value="여" ${app.gender==='여'?'checked':''} required> 여</label></div></fieldset>
+        <div class="field"><label for="editBirthYear">출생년도</label><input id="editBirthYear" type="number" min="1900" max="2100" inputmode="numeric" value="${esc(app.birth_year||'')}" required /></div>
+        <div class="field"><label for="editPhone">연락처</label><input id="editPhone" type="tel" inputmode="tel" value="${esc(formatPhone(app.phone||''))}" maxlength="20" required /></div>
+        <div class="field"><label for="editNeighborhood">거주지 행정동</label><input id="editNeighborhood" value="${esc(app.neighborhood||'')}" maxlength="40" required /></div>
+        ${vehicleVisible?`<div class="field"><label for="editVehicleNo">차량번호 <span style="font-weight:700;color:var(--muted)">(선택)</span></label><input id="editVehicleNo" value="${esc(app.vehicle_no||'')}" maxlength="30" /></div>`:''}
+        <div class="notice" style="margin:0">신청 순서는 유지됩니다. 수정 후에도 기존 신청 순번을 그대로 사용합니다.</div>
+        <button class="primary full" type="submit">수정완료</button>
+      </form>`;
+      $('editPhone').addEventListener('input',e=>{e.target.value=formatPhone(e.target.value)});
+      $('studentEditForm').addEventListener('submit',submitStudentEdit);
+    }
+
+    async function submitStudentEdit(e){
+      e.preventDefault();
+      if(!studentActionState) return;
+      const {applicationId,courseId,pin}=studentActionState;
+      const c=courses.find(x=>String(x.id)===String(courseId));
+      if(c && !studentChangeAllowed(c)){closeStudentModal();showChangeClosedNotice();return;}
+      const gender=document.querySelector('input[name="editGender"]:checked')?.value||'';
+      const payload={name:$('editApplicantName').value.trim(),gender,birth_year:num($('editBirthYear').value),phone:normalizePhone($('editPhone').value),neighborhood:$('editNeighborhood').value.trim(),vehicle_no:String($('editVehicleNo')?.value||'').trim()};
+      if(payload.phone.length<10){toast('연락처를 확인해 주세요.');return;}
+      try{
+        if(isDemo){
+          const apps=demoGet(DEMO_APP_KEY); const idx=apps.findIndex(a=>String(a.id)===String(applicationId));
+          if(idx<0) throw new Error('application_not_found');
+          if(String(apps[idx].pin||'')!==pin) throw new Error('invalid_application_pin');
+          apps[idx]={...apps[idx],...payload};demoSet(DEMO_APP_KEY,apps);
+        }else{
+          const {error}=await sb.rpc('student_update_application',{p_application_id:applicationId,p_pin:pin,p_name:payload.name,p_gender:payload.gender,p_birth_year:payload.birth_year,p_phone:payload.phone,p_neighborhood:payload.neighborhood,p_vehicle_no:payload.vehicle_no||null});
+          if(error) throw error;
+        }
+        closeStudentModal();closeCourseModal();await loadCourses(true);toast('신청정보가 수정되었습니다.');
+      }catch(err){handleStudentActionError(err)}
+    }
 
     function startApply(id){
       const c=courses.find(x=>String(x.id)===String(id)); if(!c) return;
@@ -642,8 +817,10 @@
       e.preventDefault(); const courseId=$('applyCourseId').value; const gender=document.querySelector('input[name="gender"]:checked')?.value||'';
       const current=courses.find(x=>String(x.id)===String(courseId));
       if(current && isCourseClosed(current)){toast('신청이 마감된 강좌입니다.');currentCourseTab='closed';go('courses');return;}
-      const payload={course_id:courseId,name:$('applicantName').value.trim(),gender,birth_year:num($('birthYear').value),phone:normalizePhone($('phone').value),neighborhood:$('neighborhood').value.trim(),vehicle_no:String($('vehicleNo').value||'').trim()};
+      const pin=String($('applicationPin').value||'').trim();
+      const payload={course_id:courseId,name:$('applicantName').value.trim(),gender,birth_year:num($('birthYear').value),phone:normalizePhone($('phone').value),neighborhood:$('neighborhood').value.trim(),vehicle_no:String($('vehicleNo').value||'').trim(),pin};
       if(payload.phone.length<10){toast('연락처를 확인해 주세요.');return;}
+      if(!/^\d{4}$/.test(pin)){toast('수정·취소 비밀번호는 숫자 4자리로 입력해 주세요.');return;}
       try{
         let result;
         if(isDemo){
@@ -654,11 +831,11 @@
           const status=position<=num(c.capacity)?'신청':'대기';
           apps.push({...payload,id:crypto.randomUUID(),created_at:new Date().toISOString()}); demoSet(DEMO_APP_KEY,apps); result={status,position};
         } else {
-          const {data,error}=await sb.rpc('submit_application',{p_course_id:courseId,p_name:payload.name,p_gender:payload.gender,p_birth_year:payload.birth_year,p_phone:payload.phone,p_neighborhood:payload.neighborhood,p_vehicle_no:payload.vehicle_no||null}); if(error) throw error; result=data;
+          const {data,error}=await sb.rpc('submit_application',{p_course_id:courseId,p_name:payload.name,p_gender:payload.gender,p_birth_year:payload.birth_year,p_phone:payload.phone,p_neighborhood:payload.neighborhood,p_vehicle_no:payload.vehicle_no||null,p_pin:pin}); if(error) throw error; result=data;
         }
         await loadCourses(true); const c=courses.find(x=>String(x.id)===String(courseId));
         $('applicationForm').style.display='none'; $('applicationResult').style.display='block';
-        $('applicationResult').innerHTML=`<div class="big">신청이 완료되었습니다.</div><div><b>${esc(c?.program_name||'강좌')}</b></div><div style="margin-top:10px">내 신청 순서: <b>${num(result?.position)}번</b> · 휴대폰 끝자리 <b>${esc(payload.phone.slice(-4))}</b></div><div style="margin-top:6px">현재 상태: <b>${esc(result?.status||'신청')}</b></div><div style="margin-top:12px">모집 ${num(c?.capacity)}명 · 신청 ${num(c?.accepted_count)}명 · 대기 ${num(c?.waiting_count)} / 2명</div><div class="btn-row"><button class="secondary full" type="button" data-go-after="courses">다른 강좌 보기</button></div>`;
+        $('applicationResult').innerHTML=`<div class="big">신청이 완료되었습니다.</div><div><b>${esc(c?.program_name||'강좌')}</b></div><div style="margin-top:10px">내 신청 순서: <b>${num(result?.position)}번</b> · 휴대폰 끝자리 <b>${esc(payload.phone.slice(-4))}</b></div><div style="margin-top:6px">현재 상태: <b>${esc(result?.status||'신청')}</b></div><div class="notice" style="margin:14px 0 0"><b>수정·취소 비밀번호 4자리를 꼭 기억해 주세요.</b><br>신청 순서 화면에서 수정하기 또는 취소하기를 누를 때 필요합니다.</div><div style="margin-top:12px">모집 ${num(c?.capacity)}명 · 신청 ${num(c?.accepted_count)}명 · 대기 ${num(c?.waiting_count)} / 2명</div><div class="btn-row"><button class="secondary full" type="button" data-go-after="courses">다른 강좌 보기</button></div>`;
         $('applicationResult').querySelector('[data-go-after]').addEventListener('click',()=>go('courses'));
       }catch(err){console.error(err);toast('신청 중 오류가 발생했습니다.')}
     }
