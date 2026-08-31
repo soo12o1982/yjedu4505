@@ -232,6 +232,7 @@
       <section class="manage-box" aria-labelledby="manageTitle">
         <h3 id="manageTitle">등록 강좌 관리</h3>
         <div id="manageCourseList"></div>
+        <div class="btn-row"><button id="courseExcelDownload" class="secondary full" type="button">등록 강좌 엑셀 다운로드</button></div>
       </section>
       <form id="courseForm" class="form">
         <input id="editCourseId" type="hidden" />
@@ -244,7 +245,10 @@
           <div class="field"><label for="educationDate">교육일자</label><input id="educationDate" type="date" required /></div>
           <div class="field"><label for="weekday">요일</label><input id="weekday" readonly placeholder="날짜를 선택하면 자동 표시" /></div>
         </div>
-        <div class="field"><label for="educationTime">교육시간</label><input id="educationTime" placeholder="예: 14:00~15:00" maxlength="50" required /></div>
+        <div class="two">
+          <div class="field"><label for="educationStartTime">시작시간</label><input id="educationStartTime" type="time" required /></div>
+          <div class="field"><label for="educationEndTime">종료시간</label><input id="educationEndTime" type="time" required /></div>
+        </div>
         <div class="field"><label for="location">교육장소</label><input id="location" maxlength="100" required /></div>
         <div class="field"><label for="inquiryPhone">문의전화</label><input id="inquiryPhone" type="tel" inputmode="tel" maxlength="30" placeholder="예: 051-000-0000" required /></div>
         <div class="field"><label for="mentorName">멘토강사명</label><input id="mentorName" maxlength="60" required /></div>
@@ -386,6 +390,7 @@
       $('cancelEditBtn').addEventListener('click',resetCourseForm);
       $('applicationForm').addEventListener('submit',submitApplication);
       $('excelDownload').addEventListener('click',downloadExcel);
+      $('courseExcelDownload').addEventListener('click',downloadCourseExcel);
       $('tabOpen').addEventListener('click',()=>setCourseTab('open'));
       $('tabClosed').addEventListener('click',()=>setCourseTab('closed'));
 
@@ -412,6 +417,21 @@
       return d.replace(/(\d{3})(\d{3,4})(\d{4})/,'$1-$2-$3');
     }
 
+    function parseEducationTime(value){
+      const s=String(value||'').trim();
+      const m=s.match(/(\d{1,2}:\d{2}).*?(\d{1,2}:\d{2})/);
+      if(m) return {start:m[1].padStart(5,'0'),end:m[2].padStart(5,'0')};
+      const one=s.match(/(\d{1,2}:\d{2})/);
+      return {start:one?one[1].padStart(5,'0'):'',end:''};
+    }
+
+    function educationTimeText(c){
+      const {start,end}=parseEducationTime(c?.education_time);
+      if(start&&end) return `${start} ~ ${end}`;
+      if(start) return `${start} ~ 종료시간 미등록`;
+      return String(c?.education_time||'');
+    }
+
     function courseCutoff(c){
       if(!c?.education_date) return null;
       const d=new Date(c.education_date+'T00:00:00');
@@ -420,13 +440,16 @@
     }
 
     function isCourseClosed(c){
-      const capacityClosed=num(c.accepted_count)>=num(c.capacity);
+      const total=num(c.total_applications || (num(c.accepted_count)+num(c.waiting_count)));
+      const capacityWithWait=num(c.capacity)+2;
+      const capacityClosed=total>=capacityWithWait;
       const cutoff=courseCutoff(c);
       return capacityClosed || (cutoff ? new Date()>=cutoff : false);
     }
 
     function closeReason(c){
-      if(num(c.accepted_count)>=num(c.capacity)) return '모집인원 마감';
+      const total=num(c.total_applications || (num(c.accepted_count)+num(c.waiting_count)));
+      if(total>=num(c.capacity)+2) return '대기접수 2명까지 마감';
       const cutoff=courseCutoff(c);
       if(cutoff && new Date()>=cutoff) return '신청기간 마감';
       return '';
@@ -484,9 +507,9 @@
         return;
       }
       box.innerHTML=filtered.map(c=>`<article class="course-card">
-        <h3 class="course-name"><button type="button" data-detail="${esc(c.id)}">${esc(c.program_name)}</button><span class="open-badge">신청중</span></h3>
-        <div class="meta"><div><b>날짜</b>${esc(dateText(c.education_date))}</div><div><b>요일</b>${esc(c.weekday)}</div><div><b>시간</b>${esc(c.education_time)}</div><div><b>장소</b>${esc(c.location)}</div></div>
-        <div class="counts"><div class="count"><span>모집</span><strong>${num(c.capacity)}명</strong></div><div class="count"><span>신청</span><strong>${num(c.accepted_count)}명</strong></div><div class="count"><span>대기</span><strong>${num(c.waiting_count)}명</strong></div></div>
+        <h3 class="course-name"><button type="button" data-detail="${esc(c.id)}">${esc(c.program_name)}</button><span class="open-badge">${num(c.accepted_count)>=num(c.capacity)?'대기접수':'신청중'}</span></h3>
+        <div class="meta"><div><b>날짜</b>${esc(dateText(c.education_date))}</div><div><b>요일</b>${esc(c.weekday)}</div><div><b>시간</b>${esc(educationTimeText(c))}</div><div><b>장소</b>${esc(c.location)}</div><div><b>멘토</b>${esc(c.mentor_name||'-')}</div></div>
+        <div class="counts"><div class="count"><span>모집</span><strong>${num(c.capacity)}명</strong></div><div class="count"><span>신청</span><strong>${num(c.accepted_count)}명</strong></div><div class="count"><span>대기</span><strong>${num(c.waiting_count)} / 2명</strong></div></div>
         ${renderPublicStatus(c.id)}
         <div class="btn-row"><button class="primary full" type="button" data-apply="${esc(c.id)}">신청하기</button></div>
       </article>`).join('');
@@ -506,13 +529,13 @@
       $('modalTitle').textContent=c.program_name;
       $('modalBody').innerHTML=`<div class="detail-box"><div class="detail-grid">
         <div class="detail-item"><b>난이도</b><div>${esc(c.level)}</div></div>
-        <div class="detail-item"><b>교육일시</b><div>${esc(dateText(c.education_date))} ${esc(c.weekday)} · ${esc(c.education_time)}</div></div>
+        <div class="detail-item"><b>교육일시</b><div>${esc(dateText(c.education_date))} ${esc(c.weekday)} · ${esc(educationTimeText(c))}</div></div>
         <div class="detail-item"><b>교육장소</b><div>${esc(c.location)}</div></div>
         <div class="detail-item"><b>문의전화</b><div>${esc(c.inquiry_phone||'')}</div></div>
         <div class="detail-item"><b>멘토강사</b><div>${esc(c.mentor_name)}</div></div>
         <div class="detail-item"><b>교육내용</b><div>${esc(c.details)}</div></div>
         <div class="detail-item"><b>준비물</b><div>${esc(c.supplies)}</div></div>
-      </div><div class="counts"><div class="count"><span>모집</span><strong>${num(c.capacity)}명</strong></div><div class="count"><span>신청</span><strong>${num(c.accepted_count)}명</strong></div><div class="count"><span>대기</span><strong>${num(c.waiting_count)}명</strong></div></div>${renderPublicStatus(c.id)}</div>
+      </div><div class="counts"><div class="count"><span>모집</span><strong>${num(c.capacity)}명</strong></div><div class="count"><span>신청</span><strong>${num(c.accepted_count)}명</strong></div><div class="count"><span>대기</span><strong>${num(c.waiting_count)} / 2명</strong></div></div>${renderPublicStatus(c.id)}</div>
       <div class="btn-row">${isCourseClosed(c)?`<button class="secondary full" type="button" disabled>신청마감 · ${esc(closeReason(c))}</button>`:`<button id="modalApply" class="primary full" type="button">신청하기</button>`}</div>`;
       if(!isCourseClosed(c)) $('modalApply').addEventListener('click',()=>{closeCourseModal();startApply(c.id)});
       $('courseModal').classList.add('open');
@@ -524,7 +547,7 @@
       if(isCourseClosed(c)){toast('신청이 마감된 강좌입니다.');currentCourseTab='closed';go('courses');return;}
       selectedCourse=c;
       $('applicationForm').reset(); $('applyCourseId').value=c.id;
-      $('applyCourseName').textContent=`${c.program_name} · ${dateText(c.education_date)} ${c.weekday} ${c.education_time} · ${c.location}`;
+      $('applyCourseName').textContent=`${c.program_name} · ${dateText(c.education_date)} ${c.weekday} ${educationTimeText(c)} · ${c.location}`;
       $('applicationResult').style.display='none'; $('applicationForm').style.display='grid';
       $('vehicleField').style.display=String(c.location||'').trim()==='거제평생학습관'?'block':'none';
       go('apply');
@@ -553,7 +576,7 @@
     function renderManageCourses(){
       const box=$('manageCourseList'); if(!box) return;
       if(!courses.length){box.innerHTML='<div class="hint">등록된 강좌가 없습니다.</div>';return;}
-      box.innerHTML=courses.map(c=>`<div class="manage-item"><div class="manage-name">${esc(c.program_name)}</div><div class="manage-meta">${esc(dateText(c.education_date))} ${esc(c.weekday)} · ${esc(c.education_time)} · 모집 ${num(c.capacity)}명 · 문의 ${esc(c.inquiry_phone||'-')}</div><div class="btn-row"><button class="secondary" type="button" data-edit-course="${esc(c.id)}">수정</button><button class="danger-lite" type="button" data-delete-course="${esc(c.id)}">삭제</button></div></div>`).join('');
+      box.innerHTML=courses.map(c=>`<div class="manage-item"><div class="manage-name">${esc(c.program_name)}</div><div class="manage-meta">${esc(dateText(c.education_date))} ${esc(c.weekday)} · ${esc(educationTimeText(c))} · 모집 ${num(c.capacity)}명 · 문의 ${esc(c.inquiry_phone||'-')}</div><div class="btn-row"><button class="secondary" type="button" data-edit-course="${esc(c.id)}">수정</button><button class="danger-lite" type="button" data-delete-course="${esc(c.id)}">삭제</button></div></div>`).join('');
       box.querySelectorAll('[data-edit-course]').forEach(b=>b.addEventListener('click',()=>editCourse(b.dataset.editCourse)));
       box.querySelectorAll('[data-delete-course]').forEach(b=>b.addEventListener('click',()=>deleteCourse(b.dataset.deleteCourse)));
     }
@@ -562,7 +585,7 @@
       const c=courses.find(x=>String(x.id)===String(id)); if(!c) return;
       editingCourseId=c.id; $('editCourseId').value=c.id;
       $('programName').value=c.program_name||''; $('level').value=c.level||''; $('capacity').value=c.capacity||'';
-      $('educationDate').value=c.education_date||''; $('weekday').value=c.weekday||''; $('educationTime').value=c.education_time||'';
+      $('educationDate').value=c.education_date||''; $('weekday').value=c.weekday||''; const timeParts=parseEducationTime(c.education_time); $('educationStartTime').value=timeParts.start; $('educationEndTime').value=timeParts.end;
       $('location').value=c.location||''; $('inquiryPhone').value=c.inquiry_phone||''; $('mentorName').value=c.mentor_name||''; $('details').value=c.details||''; $('supplies').value=c.supplies||'';
       $('courseSubmitBtn').textContent='수정완료'; $('cancelEditBtn').style.display='inline-block';
       $('courseForm').scrollIntoView({behavior:'smooth',block:'start'}); toast('수정할 내용을 변경해 주세요.');
@@ -570,9 +593,13 @@
 
     async function saveCourse(e){
       e.preventDefault(); if(!registerSessionCode){toast('관리자 코드 확인이 필요합니다.');go('register-code');return;}
+      const startTime=$('educationStartTime').value;
+      const endTime=$('educationEndTime').value;
+      if(!startTime||!endTime){toast('시작시간과 종료시간을 모두 선택해 주세요.');return;}
+      if(endTime<=startTime){toast('종료시간은 시작시간보다 늦어야 합니다.');return;}
       const payload={
         program_name:$('programName').value.trim(), level:$('level').value, capacity:num($('capacity').value), education_date:$('educationDate').value,
-        weekday:$('weekday').value, education_time:$('educationTime').value.trim(), location:$('location').value.trim(), inquiry_phone:$('inquiryPhone').value.trim(), mentor_name:$('mentorName').value.trim(),
+        weekday:$('weekday').value, education_time:`${startTime}~${endTime}`, location:$('location').value.trim(), inquiry_phone:$('inquiryPhone').value.trim(), mentor_name:$('mentorName').value.trim(),
         details:$('details').value.trim(), supplies:$('supplies').value.trim()
       };
       try{
@@ -622,15 +649,16 @@
         if(isDemo){
           const apps=demoGet(DEMO_APP_KEY); const c=demoGet(DEMO_COURSE_KEY).find(x=>x.id===courseId); if(!c) throw new Error('course not found');
           const before=apps.filter(a=>a.course_id===courseId).length;
-          if(before>=num(c.capacity) || new Date()>=courseCutoff(c)) throw new Error('application closed');
-          const status='신청';
-          apps.push({...payload,id:crypto.randomUUID(),created_at:new Date().toISOString()}); demoSet(DEMO_APP_KEY,apps); result={status,position:before+1};
+          if(before>=num(c.capacity)+2 || new Date()>=courseCutoff(c)) throw new Error('application closed');
+          const position=before+1;
+          const status=position<=num(c.capacity)?'신청':'대기';
+          apps.push({...payload,id:crypto.randomUUID(),created_at:new Date().toISOString()}); demoSet(DEMO_APP_KEY,apps); result={status,position};
         } else {
           const {data,error}=await sb.rpc('submit_application',{p_course_id:courseId,p_name:payload.name,p_gender:payload.gender,p_birth_year:payload.birth_year,p_phone:payload.phone,p_neighborhood:payload.neighborhood,p_vehicle_no:payload.vehicle_no||null}); if(error) throw error; result=data;
         }
         await loadCourses(true); const c=courses.find(x=>String(x.id)===String(courseId));
         $('applicationForm').style.display='none'; $('applicationResult').style.display='block';
-        $('applicationResult').innerHTML=`<div class="big">신청이 완료되었습니다.</div><div><b>${esc(c?.program_name||'강좌')}</b></div><div style="margin-top:10px">내 신청 순서: <b>${num(result?.position)}번</b> · 휴대폰 끝자리 <b>${esc(payload.phone.slice(-4))}</b></div><div style="margin-top:6px">현재 상태: <b>${esc(result?.status||'신청')}</b></div><div style="margin-top:12px">모집 ${num(c?.capacity)}명 · 신청 ${num(c?.accepted_count)}명 · 대기 ${num(c?.waiting_count)}명</div><div class="btn-row"><button class="secondary full" type="button" data-go-after="courses">다른 강좌 보기</button></div>`;
+        $('applicationResult').innerHTML=`<div class="big">신청이 완료되었습니다.</div><div><b>${esc(c?.program_name||'강좌')}</b></div><div style="margin-top:10px">내 신청 순서: <b>${num(result?.position)}번</b> · 휴대폰 끝자리 <b>${esc(payload.phone.slice(-4))}</b></div><div style="margin-top:6px">현재 상태: <b>${esc(result?.status||'신청')}</b></div><div style="margin-top:12px">모집 ${num(c?.capacity)}명 · 신청 ${num(c?.accepted_count)}명 · 대기 ${num(c?.waiting_count)} / 2명</div><div class="btn-row"><button class="secondary full" type="button" data-go-after="courses">다른 강좌 보기</button></div>`;
         $('applicationResult').querySelector('[data-go-after]').addEventListener('click',()=>go('courses'));
       }catch(err){console.error(err);toast('신청 중 오류가 발생했습니다.')}
     }
@@ -641,7 +669,7 @@
       box.innerHTML=courses.map(c=>`<article class="admin-course"><h3>${esc(c.program_name)}</h3><div class="admin-counts">
         <button class="number-btn static" type="button"><span>모집</span><strong>${num(c.capacity)}명</strong></button>
         <button class="number-btn" type="button" data-admin-course="${esc(c.id)}" data-status="신청"><span>신청</span><strong>${num(c.accepted_count)}명</strong></button>
-        <button class="number-btn" type="button" data-admin-course="${esc(c.id)}" data-status="대기"><span>대기</span><strong>${num(c.waiting_count)}명</strong></button>
+        <button class="number-btn" type="button" data-admin-course="${esc(c.id)}" data-status="대기"><span>대기</span><strong>${num(c.waiting_count)} / 2명</strong></button>
       </div></article>`).join('');
       box.querySelectorAll('[data-admin-course]').forEach(b=>b.addEventListener('click',()=>showApplicants(b.dataset.adminCourse,b.dataset.status)));
     }
@@ -671,7 +699,7 @@
       return {
         '프로그램명':c.program_name||'', '난이도':c.level||'', '모집인원':num(c.capacity),
         '신청인원':num(c.accepted_count), '대기인원':num(c.waiting_count), '교육일자':dateText(c.education_date),
-        '요일':c.weekday||'', '교육시간':c.education_time||'', '교육장소':c.location||'', '문의전화':c.inquiry_phone||'',
+        '요일':c.weekday||'', '교육시간':educationTimeText(c), '교육장소':c.location||'', '문의전화':c.inquiry_phone||'',
         '멘토강사명':c.mentor_name||'', '교육상세내용':c.details||'', '참여자 준비물':c.supplies||'', '강좌등록일시':formatDateTime(c.created_at)
       };
     }
@@ -686,6 +714,28 @@
       a.href=URL.createObjectURL(blob); a.download=fileBase+'.xls'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
     }
 
+    function downloadCourseExcel(){
+      if(!registerSessionCode){toast('관리자 코드 확인이 필요합니다.');return;}
+      try{
+        const courseData=courses.map(excelCourseRow);
+        const headers=['프로그램명','난이도','모집인원','신청인원','대기인원','교육일자','요일','교육시간','교육장소','문의전화','멘토강사명','교육상세내용','참여자 준비물','강좌등록일시'];
+        const fileBase=`연제구_평생학습_등록강좌정보_${new Date().toISOString().slice(0,10)}`;
+        if(window.XLSX){
+          const wb=XLSX.utils.book_new();
+          const ws=XLSX.utils.json_to_sheet(courseData,{header:headers});
+          ws['!cols']=[{wch:26},{wch:9},{wch:9},{wch:9},{wch:9},{wch:13},{wch:8},{wch:18},{wch:24},{wch:16},{wch:16},{wch:45},{wch:30},{wch:20}];
+          XLSX.utils.book_append_sheet(wb,ws,'등록강좌정보');
+          XLSX.writeFile(wb,fileBase+'.xlsx');
+        }else{
+          const xmlEsc=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[ch]));
+          const xml=`<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="등록강좌정보"><Table><Row>${headers.map(h=>`<Cell><Data ss:Type="String">${xmlEsc(h)}</Data></Cell>`).join('')}</Row>${courseData.map(row=>`<Row>${headers.map(h=>`<Cell><Data ss:Type="String">${xmlEsc(row[h])}</Data></Cell>`).join('')}</Row>`).join('')}</Table></Worksheet></Workbook>`;
+          const blob=new Blob(['\ufeff',xml],{type:'application/vnd.ms-excel;charset=utf-8'});
+          const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fileBase+'.xls'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+        }
+        toast('등록 강좌 엑셀을 내려받았습니다.');
+      }catch(err){console.error(err);toast('강좌 엑셀 파일을 만들지 못했습니다.');}
+    }
+
     async function downloadExcel(){
       if(!adminSessionCode){toast('관리자 코드 확인이 필요합니다.');return;}
       try{
@@ -696,7 +746,7 @@
           return {
             '번호':i+1,'프로그램명':c.program_name||r.course_name||'','난이도':c.level||'','모집인원':num(c.capacity),
             '신청인원':num(c.accepted_count),'대기인원':num(c.waiting_count),'교육일자':dateText(c.education_date),'요일':c.weekday||'',
-            '교육시간':c.education_time||'','교육장소':c.location||'','문의전화':c.inquiry_phone||'','멘토강사명':c.mentor_name||'',
+            '교육시간':educationTimeText(c),'교육장소':c.location||'','문의전화':c.inquiry_phone||'','멘토강사명':c.mentor_name||'',
             '교육상세내용':c.details||'','참여자 준비물':c.supplies||'','신청상태':r.status,'강좌 내 순번':r.sequence,
             '이름':r.name,'성별':r.gender,'출생년도':r.birth_year,'연락처':formatPhone(r.phone||''),'거주지 행정동':r.neighborhood,'차량번호':r.vehicle_no||'',
             '신청일시':formatDateTime(r.applied_at||r.created_at)
