@@ -32,7 +32,11 @@
       -webkit-font-smoothing:antialiased;
     }
     button,input,select,textarea{font:inherit;color:inherit}
-    button{cursor:pointer}
+    button{cursor:pointer;touch-action:manipulation}
+    img,svg,video,canvas{max-width:100%;height:auto}
+    main,section,article,form,.page,.page-head>div,.course-card,.manage-box,.register-form-block,.field{min-width:0}
+    input,select,textarea,button{max-width:100%}
+    .table-wrap{-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;max-width:100%}
     a{color:inherit}
     .wrap{width:min(100% - 28px,var(--max));margin:0 auto;padding:20px 0 52px}
     .project-kicker{font-size:.78rem;font-weight:800;color:var(--navy);letter-spacing:-.015em;margin:2px 0 3px}
@@ -118,6 +122,19 @@
     .manage-item:first-of-type{border-top:0}
     .manage-name{font-weight:900;font-size:1.02rem}
     .manage-meta{font-size:.9rem;color:var(--muted);margin-top:3px}
+    .level-prefix{display:inline-flex;align-items:center;justify-content:center;margin-right:8px;padding:3px 9px;border-radius:999px;background:#eef3f8;color:#334e68;font-size:.84rem;font-weight:900;vertical-align:middle;white-space:nowrap}
+    .course-summary-line{display:grid;gap:3px;font-size:clamp(1.02rem,3.9vw,1.1rem);color:#4b5563;line-height:1.65;margin-top:8px;font-weight:500;letter-spacing:-.012em;font-family:system-ui,-apple-system,"Segoe UI","Noto Sans KR",sans-serif;min-width:0}
+    .course-summary-row{display:flex;align-items:baseline;flex-wrap:wrap;min-width:0}
+    .course-summary-line .summary-blue{color:#2563eb;font-weight:600}
+    .course-summary-line .summary-sep{color:#9aa3ad;margin:0 3px}
+    .course-summary-row.secondary{color:#5b6470;font-size:.98em}
+    .register-form-block{margin:0 0 22px;border:1.5px solid #aaa;border-radius:18px;padding:17px;background:#fff}
+    .register-form-block .register-form-title{margin:0 0 14px;font-size:1.18rem;font-weight:900;letter-spacing:-.02em}
+    .pagination{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:9px;margin:24px 0 4px;padding-top:8px}
+    .page-number-btn,.page-move-btn{min-width:52px;min-height:52px;border:2px solid #777;border-radius:14px;background:#fff;font-size:1.08rem;font-weight:900;padding:8px 13px}
+    .page-number-btn[aria-current="page"]{background:var(--navy);border-color:var(--navy);color:#fff}
+    .page-move-btn:disabled{opacity:.35;cursor:default}
+    .pagination-label{width:100%;text-align:center;color:var(--muted);font-size:.96rem;font-weight:800;margin-bottom:2px}
     .primary,.secondary,.danger-lite{
       min-height:52px;border-radius:14px;padding:12px 18px;font-weight:900;border:2px solid #111;
     }
@@ -192,18 +209,59 @@
       .desktop-only{display:block}
     }
     @media (max-width:520px){
+      html{font-size:17px}
+      body{overflow-x:hidden}
+      .wrap{width:calc(100% - 20px);padding-top:12px;padding-bottom:38px}
       .two{grid-template-columns:1fr}
-      .wrap{width:min(100% - 22px,var(--max));padding-top:14px}
-      .counts,.admin-counts{gap:6px}
-      .count,.number-btn{padding-left:4px;padding-right:4px}
-      .page-head{align-items:flex-start}
-      .menu-btn.compact{padding:13px 12px;font-size:.98rem}
+      .menu{grid-template-columns:1fr;gap:10px}
+      .menu-btn.learner{grid-column:auto;min-height:112px;padding:20px 18px}
+      .menu-btn.compact{min-height:68px;padding:13px 14px;font-size:1rem}
       .menu-btn.compact .arrow{font-size:1.35rem}
-      .public-status-row{align-items:flex-start;flex-direction:column}
-      .student-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}
-      .student-action-btn{width:100%;font-size:.92rem;min-height:46px}
+      .page-head{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:flex-start;gap:10px;margin-bottom:16px}
+      .back-btn{padding:10px 11px}
+      .page-title{font-size:clamp(1.42rem,7vw,1.72rem);overflow-wrap:anywhere}
+      .page-desc{font-size:.96rem;overflow-wrap:anywhere}
+      .course-card,.course-card.closed-course{padding:16px 14px}
+      .course-name{font-size:1.22rem;line-height:1.4;overflow-wrap:anywhere}
+      .course-summary-line{font-size:1rem;line-height:1.65;gap:2px}
+      .course-summary-row{overflow-wrap:anywhere}
+      .course-summary-row.secondary{margin-top:1px}
+      .counts,.admin-counts{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+      .count,.number-btn{padding-left:4px;padding-right:4px;min-width:0}
+      .count strong{font-size:1.16rem}
       .course-search-grid{grid-template-columns:1fr}
-      .course-search-box{padding:14px}
+      .course-search-box{padding:14px 12px}
+      .course-search-actions{grid-template-columns:1fr 1fr;gap:8px}
+      .course-search-actions button{min-width:0;padding-left:8px;padding-right:8px}
+      .public-status-row{align-items:flex-start;flex-direction:column}
+      .public-status-main{width:100%}
+      .student-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}
+      .student-action-btn{width:100%;font-size:.92rem;min-height:46px;padding:8px 6px}
+      .btn-row{display:grid;grid-template-columns:1fr;width:100%}
+      .btn-row>button{width:100%!important;min-width:0}
+      .pagination{gap:6px;margin-top:20px}
+      .page-number-btn,.page-move-btn{min-width:46px;min-height:48px;font-size:1rem;padding:7px 10px}
+      .manage-box,.register-form-block{padding:14px 12px;border-radius:16px}
+      .manage-name{font-size:1.06rem;overflow-wrap:anywhere}
+      .manage-meta{font-size:.94rem;line-height:1.6;overflow-wrap:anywhere}
+      .admin-course{padding:15px 13px}
+      .admin-course h3{font-size:1.12rem;overflow-wrap:anywhere}
+      .admin-combined-summary{gap:6px}
+      .admin-summary-chip{padding:6px 9px;font-size:.9rem}
+      .table-wrap{border-radius:12px}
+      table{min-width:720px;font-size:.94rem}
+      th,td{padding:10px 9px}
+      .modal{padding:0}
+      .modal-card{width:100%;max-width:100%;max-height:92vh;padding:18px 14px 24px}
+      .notice-message{font-size:1.16rem;line-height:1.65}
+      .field input,.field select,.field textarea{font-size:1rem;padding:13px 12px}
+      .radio-grid{grid-template-columns:1fr 1fr}
+    }
+    @media (max-width:360px){
+      .course-search-actions,.student-actions,.radio-grid{grid-template-columns:1fr}
+      .counts,.admin-counts{grid-template-columns:1fr}
+      .pagination{gap:5px}
+      .page-number-btn,.page-move-btn{min-width:43px;padding:6px 8px}
     }
   </style>
 </head>
@@ -280,12 +338,9 @@
         <div class="course-search-actions"><button id="registerSearchBtn" class="primary" type="button">검색</button><button id="registerSearchReset" class="secondary" type="button">전체보기</button></div>
         <div id="registerSearchNote" class="search-result-note">전체 강좌를 보고 있습니다.</div>
       </div>
-      <section class="manage-box" aria-labelledby="manageTitle">
-        <h3 id="manageTitle">등록 강좌 관리</h3>
-        <div id="manageCourseList"></div>
-        <div class="btn-row"><button id="courseExcelDownload" class="secondary full" type="button">등록 강좌 엑셀 다운로드</button></div>
-      </section>
-      <form id="courseForm" class="form">
+      <section class="register-form-block" aria-labelledby="newCourseFormTitle">
+        <h3 id="newCourseFormTitle" class="register-form-title">강좌 등록</h3>
+        <form id="courseForm" class="form">
         <input id="editCourseId" type="hidden" />
         <div class="field"><label for="programName">프로그램명</label><input id="programName" maxlength="100" required /></div>
         <div class="two">
@@ -301,7 +356,7 @@
           <div class="field"><label for="educationEndTime">종료시간</label><input id="educationEndTime" type="time" required /></div>
         </div>
         <div class="field"><label for="location">교육장소</label><input id="location" maxlength="100" required /></div>
-        <div class="field"><label for="inquiryPhone">문의전화</label><input id="inquiryPhone" type="tel" inputmode="tel" maxlength="30" placeholder="예: 051-000-0000" required /></div>
+        <div class="field"><label for="inquiryPhone">문의전화</label><input id="inquiryPhone" type="tel" inputmode="tel" maxlength="30" value="051-665-4505" placeholder="051-665-4505" required /></div>
         <div class="field"><label for="mentorName">멘토강사명</label><input id="mentorName" maxlength="60" required /></div>
         <div class="field"><label for="details">교육상세내용</label><textarea id="details" maxlength="2000" required></textarea></div>
         <div class="field"><label for="supplies">참여자 준비물</label><textarea id="supplies" maxlength="1000" placeholder="없으면 '없음'이라고 적어 주세요." required></textarea></div>
@@ -309,7 +364,13 @@
           <button id="courseSubmitBtn" class="primary" style="flex:1" type="submit">등록</button>
           <button id="cancelEditBtn" class="secondary" style="flex:1;display:none" type="button">수정 취소</button>
         </div>
-      </form>
+        </form>
+      </section>
+      <section class="manage-box" aria-labelledby="manageTitle">
+        <h3 id="manageTitle">등록 강좌 관리</h3>
+        <div id="manageCourseList"></div>
+        <div class="btn-row"><button id="courseExcelDownload" class="secondary full" type="button">등록 강좌 엑셀 다운로드</button></div>
+      </section>
     </section>
 
     <section id="page-apply" class="page" aria-labelledby="applyTitle">
@@ -442,12 +503,19 @@
       register:{type:'program',value:'',applied:''},
       admin:{type:'program',value:'',applied:''}
     };
+    const PAGE_SIZE = 10;
+    const coursePageState = {courses:1,register:1};
 
     const $ = (id) => document.getElementById(id);
     const esc = (v='') => String(v).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
     const num = (v) => Number(v || 0);
     const koWeekday = d => ['일','월','화','수','목','금','토'][new Date(d+'T00:00:00').getDay()] + '요일';
     const dateText = d => d ? d.replaceAll('-','.') : '';
+    const shortDateText = d => {
+      if(!d) return '';
+      const parts=String(d).split('-');
+      return parts.length===3 ? `${Number(parts[1])}.${Number(parts[2])}` : dateText(d);
+    };
     const normalizePhone = p => p.replace(/[^0-9]/g,'');
 
     async function sha256(text){
@@ -466,6 +534,37 @@
       register:{type:'registerSearchType',box:'registerSearchValueBox',button:'registerSearchBtn',reset:'registerSearchReset',note:'registerSearchNote'},
       admin:{type:'adminSearchType',box:'adminSearchValueBox',button:'adminSearchBtn',reset:'adminSearchReset',note:'adminSearchNote'}
     };
+
+    function paginationHtml(scope,currentPage,totalPages,totalItems){
+      if(totalPages<=1) return `<div class="pagination"><div class="pagination-label">총 ${totalItems}개 프로그램</div></div>`;
+      let nums='';
+      for(let i=1;i<=totalPages;i++){
+        nums+=`<button type="button" class="page-number-btn" data-page-scope="${scope}" data-page-number="${i}" ${i===currentPage?'aria-current="page"':''}>${i}</button>`;
+      }
+      return `<nav class="pagination" aria-label="강좌 페이지 이동"><div class="pagination-label">총 ${totalItems}개 프로그램 · ${currentPage}/${totalPages} 페이지</div><button type="button" class="page-move-btn" data-page-scope="${scope}" data-page-number="${currentPage-1}" ${currentPage<=1?'disabled':''}>이전</button>${nums}<button type="button" class="page-move-btn" data-page-scope="${scope}" data-page-number="${currentPage+1}" ${currentPage>=totalPages?'disabled':''}>다음</button></nav>`;
+    }
+
+    function bindPagination(box,scope){
+      box.querySelectorAll('[data-page-scope]').forEach(btn=>btn.addEventListener('click',()=>{
+        if(btn.disabled) return;
+        coursePageState[scope]=Math.max(1,num(btn.dataset.pageNumber));
+        if(scope==='courses') renderCourses();
+        if(scope==='register') renderManageCourses();
+        setTimeout(()=>box.scrollIntoView({behavior:'smooth',block:'start'}),0);
+      }));
+    }
+
+    function courseSummaryHtml(c){
+      const t=parseEducationTime(c?.education_time);
+      const start=t.start||'';
+      const timeHtml=start
+        ? `<span class="summary-blue">${esc(start)}</span>${t.end?` ~ ${esc(t.end)}`:' ~ 종료시간 미등록'}`
+        : esc(educationTimeText(c));
+      return `<div class="course-summary-line">
+        <div class="course-summary-row"><span class="summary-blue">${esc(dateText(c.education_date))} ${esc(c.weekday||'')}</span><span class="summary-sep"> · </span>${timeHtml}<span class="summary-sep"> · </span>난이도 ${esc(c.level||'-')}</div>
+        <div class="course-summary-row secondary">멘토 ${esc(c.mentor_name||'-')}<span class="summary-sep"> · </span>문의 051-665-4505</div>
+      </div>`;
+    }
 
     function mentorNames(){
       return [...new Set(courses.map(c=>String(c.mentor_name||'').trim()).filter(Boolean))]
@@ -505,6 +604,7 @@
         courseSearchState[scope].type=typeEl.value;
         courseSearchState[scope].value='';
         courseSearchState[scope].applied='';
+        if(scope==='courses'||scope==='register') coursePageState[scope]=1;
         renderSearchValueControl(scope);
         renderSearchTarget(scope);
         updateSearchNote(scope);
@@ -520,6 +620,7 @@
       const input=$(`${scope}SearchValue`);
       state.value=String(input?.value||'').trim();
       state.applied=state.value;
+      if(scope==='courses'||scope==='register') coursePageState[scope]=1;
       renderSearchTarget(scope);
       updateSearchNote(scope);
       if(scope==='admin') $('adminApplicantsArea').innerHTML='';
@@ -528,6 +629,7 @@
     function resetCourseSearch(scope){
       const state=courseSearchState[scope];
       state.value=''; state.applied='';
+      if(scope==='courses'||scope==='register') coursePageState[scope]=1;
       renderSearchValueControl(scope);
       renderSearchTarget(scope);
       updateSearchNote(scope);
@@ -679,6 +781,7 @@
 
     function setCourseTab(tab){
       currentCourseTab=tab;
+      coursePageState.courses=1;
       $('tabOpen').setAttribute('aria-selected',String(tab==='open'));
       $('tabClosed').setAttribute('aria-selected',String(tab==='closed'));
       renderCourses();
@@ -728,19 +831,26 @@
       updateSearchNote('courses',filtered.length);
       if(!filtered.length){box.innerHTML=`<div class="empty">${courseSearchState.courses.applied?'검색 조건에 맞는 강좌가 없습니다.':(currentCourseTab==='closed'?'현재 마감된 강좌가 없습니다.':'현재 신청 가능한 강좌가 없습니다.')}</div>`;return;}
 
-      box.innerHTML=filtered.map(c=>{
+      const totalPages=Math.max(1,Math.ceil(filtered.length/PAGE_SIZE));
+      coursePageState.courses=Math.min(Math.max(1,coursePageState.courses),totalPages);
+      const page=coursePageState.courses;
+      const pageItems=filtered.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE);
+
+      const cards=pageItems.map(c=>{
         const closed=isCourseClosed(c);
         return `<article class="course-card${closed?' closed-course':''}">
-          <h3 class="course-name"><button type="button" data-detail="${esc(c.id)}">${esc(c.program_name)}</button>${closed?'<span class="closed-badge">마감</span>':`<span class="open-badge">${num(c.accepted_count)>=num(c.capacity)?'대기접수':'신청중'}</span>`}</h3>
-          <div class="meta"><div><b>날짜</b>${esc(dateText(c.education_date))}</div><div><b>요일</b>${esc(c.weekday)}</div><div><b>시간</b>${esc(educationTimeText(c))}</div><div><b>장소</b>${esc(c.location)}</div><div><b>멘토</b>${esc(c.mentor_name||'-')}</div></div>
+          <h3 class="course-name"><span class="level-prefix">${esc(c.level||'난이도 미등록')}</span><button type="button" data-detail="${esc(c.id)}">${esc(c.program_name)}</button>${closed?'<span class="closed-badge">마감</span>':`<span class="open-badge">${num(c.accepted_count)>=num(c.capacity)?'대기접수':'신청중'}</span>`}</h3>
+          ${courseSummaryHtml(c)}
           <div class="counts"><div class="count"><span>모집</span><strong>${num(c.capacity)}명</strong></div><div class="count"><span>신청</span><strong>${num(c.accepted_count)}명</strong></div><div class="count"><span>대기</span><strong>${num(c.waiting_count)} / 2명</strong></div></div>
           ${renderPublicStatus(c.id)}
           ${closed?`<div class="notice" style="margin-top:12px;font-size:1rem;line-height:1.55"><b>신청은 마감되었습니다.</b><br>기존 신청자는 위 신청 순서에서 <b>수정하기</b> 또는 <b>취소하기</b>를 이용할 수 있습니다.</div>`:''}
           <div class="btn-row">${closed?`<button class="secondary full" type="button" disabled>신청마감 · ${esc(closeReason(c))}</button>`:`<button class="primary full" type="button" data-apply="${esc(c.id)}">신청하기</button>`}</div>
         </article>`;
       }).join('');
+      box.innerHTML=cards+paginationHtml('courses',page,totalPages,filtered.length);
       box.querySelectorAll('[data-detail]').forEach(b=>b.addEventListener('click',()=>showCourse(b.dataset.detail)));
       box.querySelectorAll('[data-apply]').forEach(b=>b.addEventListener('click',()=>startApply(b.dataset.apply)));
+      bindPagination(box,'courses');
     }
 
     function renderPublicStatus(courseId){
@@ -915,7 +1025,7 @@
 
     function resetCourseForm(){
       editingCourseId=null;
-      $('courseForm').reset(); $('editCourseId').value=''; $('weekday').value='';
+      $('courseForm').reset(); $('editCourseId').value=''; $('weekday').value=''; $('inquiryPhone').value='051-665-4505';
       $('courseSubmitBtn').textContent='등록'; $('cancelEditBtn').style.display='none';
     }
 
@@ -925,9 +1035,15 @@
       const filtered=filterCoursesBySearch(courses,'register');
       updateSearchNote('register',filtered.length);
       if(!filtered.length){box.innerHTML='<div class="empty">검색 조건에 맞는 등록 강좌가 없습니다.</div>';return;}
-      box.innerHTML=filtered.map(c=>`<div class="manage-item"><div class="manage-name">${esc(c.program_name)}</div><div class="manage-meta">${esc(dateText(c.education_date))} ${esc(c.weekday)} · ${esc(educationTimeText(c))} · 난이도 ${esc(c.level||'-')} · 멘토 ${esc(c.mentor_name||'-')} · 모집 ${num(c.capacity)}명 · 문의 ${esc(c.inquiry_phone||'-')}</div><div class="btn-row"><button class="secondary" type="button" data-edit-course="${esc(c.id)}">수정</button><button class="danger-lite" type="button" data-delete-course="${esc(c.id)}">삭제</button></div></div>`).join('');
+      const totalPages=Math.max(1,Math.ceil(filtered.length/PAGE_SIZE));
+      coursePageState.register=Math.min(Math.max(1,coursePageState.register),totalPages);
+      const page=coursePageState.register;
+      const pageItems=filtered.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE);
+      const items=pageItems.map(c=>`<div class="manage-item"><div class="manage-name">${esc(c.program_name)}</div><div class="manage-meta">${esc(dateText(c.education_date))} ${esc(c.weekday)} · ${esc(educationTimeText(c))} · 난이도 ${esc(c.level||'-')} · 멘토 ${esc(c.mentor_name||'-')} · 모집 ${num(c.capacity)}명 · 문의 051-665-4505</div><div class="btn-row"><button class="secondary" type="button" data-edit-course="${esc(c.id)}">수정</button><button class="danger-lite" type="button" data-delete-course="${esc(c.id)}">삭제</button></div></div>`).join('');
+      box.innerHTML=items+paginationHtml('register',page,totalPages,filtered.length);
       box.querySelectorAll('[data-edit-course]').forEach(b=>b.addEventListener('click',()=>editCourse(b.dataset.editCourse)));
       box.querySelectorAll('[data-delete-course]').forEach(b=>b.addEventListener('click',()=>deleteCourse(b.dataset.deleteCourse)));
+      bindPagination(box,'register');
     }
 
     function editCourse(id){
@@ -935,7 +1051,7 @@
       editingCourseId=c.id; $('editCourseId').value=c.id;
       $('programName').value=c.program_name||''; $('level').value=c.level||''; $('capacity').value=c.capacity||'';
       $('educationDate').value=c.education_date||''; $('weekday').value=c.weekday||''; const timeParts=parseEducationTime(c.education_time); $('educationStartTime').value=timeParts.start; $('educationEndTime').value=timeParts.end;
-      $('location').value=c.location||''; $('inquiryPhone').value=c.inquiry_phone||''; $('mentorName').value=c.mentor_name||''; $('details').value=c.details||''; $('supplies').value=c.supplies||'';
+      $('location').value=c.location||''; $('inquiryPhone').value=c.inquiry_phone||'051-665-4505'; $('mentorName').value=c.mentor_name||''; $('details').value=c.details||''; $('supplies').value=c.supplies||'';
       $('courseSubmitBtn').textContent='수정완료'; $('cancelEditBtn').style.display='inline-block';
       $('courseForm').scrollIntoView({behavior:'smooth',block:'start'}); toast('수정할 내용을 변경해 주세요.');
     }
