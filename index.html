@@ -120,14 +120,16 @@
     .manage-box h3{margin:0 0 10px;font-size:1.16rem}
     .manage-item{border-top:1px solid #ddd;padding:13px 0}
     .manage-item:first-of-type{border-top:0}
-    .manage-name{font-weight:900;font-size:1.02rem}
-    .manage-meta{font-size:.9rem;color:var(--muted);margin-top:3px}
+    .manage-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+    .manage-actions{display:flex;align-items:center;gap:5px;flex:0 0 auto}
+    .manage-actions button{width:auto!important;min-width:0!important;padding:7px 10px!important;min-height:34px!important;font-size:.82rem!important;line-height:1.1;border-radius:8px}
+    .manage-name{font-weight:900;font-size:1.02rem;min-width:0;overflow-wrap:anywhere}
+    .manage-meta{font-size:.9rem;color:var(--muted);margin-top:5px}
     .level-prefix{display:inline-flex;align-items:center;justify-content:center;margin-right:8px;padding:3px 9px;border-radius:999px;background:#eef3f8;color:#334e68;font-size:.84rem;font-weight:900;vertical-align:middle;white-space:nowrap}
     .course-summary-line{display:grid;gap:3px;font-size:clamp(1.02rem,3.9vw,1.1rem);color:#4b5563;line-height:1.65;margin-top:8px;font-weight:500;letter-spacing:-.012em;font-family:system-ui,-apple-system,"Segoe UI","Noto Sans KR",sans-serif;min-width:0}
     .course-summary-row{display:flex;align-items:baseline;flex-wrap:wrap;min-width:0}
     .course-summary-line .summary-blue{color:#2563eb;font-weight:600}
     .course-summary-line .summary-sep{color:#9aa3ad;margin:0 3px}
-    .course-summary-row.secondary{color:#5b6470;font-size:.98em}
     .register-form-block{margin:0 0 22px;border:1.5px solid #aaa;border-radius:18px;padding:17px;background:#fff}
     .register-form-block .register-form-title{margin:0 0 14px;font-size:1.18rem;font-weight:900;letter-spacing:-.02em}
     .pagination{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:9px;margin:24px 0 4px;padding-top:8px}
@@ -169,6 +171,7 @@
     .admin-course h3{margin:0 0 10px;font-size:1.2rem}
     .admin-course-title{border:0;background:transparent;padding:0;text-align:left;font:inherit;font-weight:900;color:var(--text);text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:5px;cursor:pointer}
     .admin-course-title:focus-visible{outline:3px solid #93b4e8;outline-offset:4px;border-radius:4px}
+    .admin-inline-applicants{margin-top:15px;padding-top:14px;border-top:1px solid #d9d9d9}
     .admin-combined-summary{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 2px}
     .admin-summary-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid #bbb;border-radius:999px;padding:7px 11px;background:#fff;font-weight:900}
     .admin-summary-chip.accepted{border-color:#9bb8df;background:#f2f7ff}
@@ -225,7 +228,6 @@
       .course-name{font-size:1.22rem;line-height:1.4;overflow-wrap:anywhere}
       .course-summary-line{font-size:1rem;line-height:1.65;gap:2px}
       .course-summary-row{overflow-wrap:anywhere}
-      .course-summary-row.secondary{margin-top:1px}
       .counts,.admin-counts{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
       .count,.number-btn{padding-left:4px;padding-right:4px;min-width:0}
       .count strong{font-size:1.16rem}
@@ -242,7 +244,10 @@
       .pagination{gap:6px;margin-top:20px}
       .page-number-btn,.page-move-btn{min-width:46px;min-height:48px;font-size:1rem;padding:7px 10px}
       .manage-box,.register-form-block{padding:14px 12px;border-radius:16px}
-      .manage-name{font-size:1.06rem;overflow-wrap:anywhere}
+      .manage-head{align-items:flex-start;gap:7px}
+      .manage-actions{display:flex;gap:5px;width:auto}
+      .manage-actions button{width:auto!important;min-width:0!important;padding:7px 9px!important;min-height:34px!important;font-size:.8rem!important}
+      .manage-name{font-size:1.06rem;overflow-wrap:anywhere;flex:1 1 180px}
       .manage-meta{font-size:.94rem;line-height:1.6;overflow-wrap:anywhere}
       .admin-course{padding:15px 13px}
       .admin-course h3{font-size:1.12rem;overflow-wrap:anywhere}
@@ -468,6 +473,13 @@
       <div id="adminCancelModalBody"></div>
     </div>
   </div>
+
+  <div id="courseDeleteModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="courseDeleteModalTitle">
+    <div class="modal-card">
+      <div class="modal-head"><h2 id="courseDeleteModalTitle">프로그램 삭제</h2><button id="closeCourseDeleteModalTop" class="icon-btn" aria-label="닫기">×</button></div>
+      <div id="courseDeleteModalBody"></div>
+    </div>
+  </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -498,13 +510,14 @@
     let currentCourseTab = 'open';
     let studentActionState = null;
     let adminCancelState = null;
+    let courseDeleteState = null;
     const courseSearchState = {
       courses:{type:'program',value:'',applied:''},
       register:{type:'program',value:'',applied:''},
       admin:{type:'program',value:'',applied:''}
     };
     const PAGE_SIZE = 10;
-    const coursePageState = {courses:1,register:1};
+    const coursePageState = {courses:1,register:1,admin:1};
 
     const $ = (id) => document.getElementById(id);
     const esc = (v='') => String(v).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
@@ -550,6 +563,7 @@
         coursePageState[scope]=Math.max(1,num(btn.dataset.pageNumber));
         if(scope==='courses') renderCourses();
         if(scope==='register') renderManageCourses();
+        if(scope==='admin') renderAdminCourses();
         setTimeout(()=>box.scrollIntoView({behavior:'smooth',block:'start'}),0);
       }));
     }
@@ -562,7 +576,7 @@
         : esc(educationTimeText(c));
       return `<div class="course-summary-line">
         <div class="course-summary-row"><span class="summary-blue">${esc(dateText(c.education_date))} ${esc(c.weekday||'')}</span><span class="summary-sep"> · </span>${timeHtml}<span class="summary-sep"> · </span>난이도 ${esc(c.level||'-')}</div>
-        <div class="course-summary-row secondary">멘토 ${esc(c.mentor_name||'-')}<span class="summary-sep"> · </span>문의 051-665-4505</div>
+        <div class="course-summary-row">멘토 ${esc(c.mentor_name||'-')}<span class="summary-sep"> · </span>문의 051-665-4505</div>
       </div>`;
     }
 
@@ -604,7 +618,7 @@
         courseSearchState[scope].type=typeEl.value;
         courseSearchState[scope].value='';
         courseSearchState[scope].applied='';
-        if(scope==='courses'||scope==='register') coursePageState[scope]=1;
+        if(scope==='courses'||scope==='register'||scope==='admin') coursePageState[scope]=1;
         renderSearchValueControl(scope);
         renderSearchTarget(scope);
         updateSearchNote(scope);
@@ -620,7 +634,7 @@
       const input=$(`${scope}SearchValue`);
       state.value=String(input?.value||'').trim();
       state.applied=state.value;
-      if(scope==='courses'||scope==='register') coursePageState[scope]=1;
+      if(scope==='courses'||scope==='register'||scope==='admin') coursePageState[scope]=1;
       renderSearchTarget(scope);
       updateSearchNote(scope);
       if(scope==='admin') $('adminApplicantsArea').innerHTML='';
@@ -629,7 +643,7 @@
     function resetCourseSearch(scope){
       const state=courseSearchState[scope];
       state.value=''; state.applied='';
-      if(scope==='courses'||scope==='register') coursePageState[scope]=1;
+      if(scope==='courses'||scope==='register'||scope==='admin') coursePageState[scope]=1;
       renderSearchValueControl(scope);
       renderSearchTarget(scope);
       updateSearchNote(scope);
@@ -695,6 +709,8 @@
       $('noticeModal').addEventListener('click',e=>{if(e.target===$('noticeModal'))closeNoticeModal()});
       $('closeAdminCancelModalTop').addEventListener('click',closeAdminCancelModal);
       $('adminCancelModal').addEventListener('click',e=>{if(e.target===$('adminCancelModal'))closeAdminCancelModal()});
+      $('closeCourseDeleteModalTop').addEventListener('click',closeCourseDeleteModal);
+      $('courseDeleteModal').addEventListener('click',e=>{if(e.target===$('courseDeleteModal'))closeCourseDeleteModal()});
       document.addEventListener('click',e=>{
         const adminCancel=e.target.closest('[data-admin-cancel]');
         if(adminCancel){openAdminCancelModal(adminCancel.dataset.adminCancel,adminCancel.dataset.name,adminCancel.dataset.courseId,adminCancel.dataset.status);return;}
@@ -1039,7 +1055,7 @@
       coursePageState.register=Math.min(Math.max(1,coursePageState.register),totalPages);
       const page=coursePageState.register;
       const pageItems=filtered.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE);
-      const items=pageItems.map(c=>`<div class="manage-item"><div class="manage-name">${esc(c.program_name)}</div><div class="manage-meta">${esc(dateText(c.education_date))} ${esc(c.weekday)} · ${esc(educationTimeText(c))} · 난이도 ${esc(c.level||'-')} · 멘토 ${esc(c.mentor_name||'-')} · 모집 ${num(c.capacity)}명 · 문의 051-665-4505</div><div class="btn-row"><button class="secondary" type="button" data-edit-course="${esc(c.id)}">수정</button><button class="danger-lite" type="button" data-delete-course="${esc(c.id)}">삭제</button></div></div>`).join('');
+      const items=pageItems.map(c=>`<div class="manage-item"><div class="manage-head"><div class="manage-actions"><button class="secondary" type="button" data-edit-course="${esc(c.id)}">수정</button><button class="danger-lite" type="button" data-delete-course="${esc(c.id)}">삭제</button></div><div class="manage-name">${esc(c.program_name)}</div></div><div class="manage-meta">${esc(dateText(c.education_date))} ${esc(c.weekday)} · ${esc(educationTimeText(c))} · 난이도 ${esc(c.level||'-')} · 멘토 ${esc(c.mentor_name||'-')} · 모집 ${num(c.capacity)}명 · 문의 051-665-4505</div></div>`).join('');
       box.innerHTML=items+paginationHtml('register',page,totalPages,filtered.length);
       box.querySelectorAll('[data-edit-course]').forEach(b=>b.addEventListener('click',()=>editCourse(b.dataset.editCourse)));
       box.querySelectorAll('[data-delete-course]').forEach(b=>b.addEventListener('click',()=>deleteCourse(b.dataset.deleteCourse)));
@@ -1081,26 +1097,67 @@
       }catch(err){console.error(err);toast(editingCourseId?'강좌 수정에 실패했습니다.':'강좌 등록에 실패했습니다.');}
     }
 
-    async function deleteCourse(id){
+    function deleteCourse(id){
       if(!registerSessionCode){toast('관리자 코드 확인이 필요합니다.');return;}
-      const c=courses.find(x=>String(x.id)===String(id)); if(!c) return;
-      const deleteCode=prompt(`“${c.program_name}” 강좌를 삭제하려면 삭제코드를 입력해 주세요.`);
-      if(deleteCode===null) return;
-      if(!deleteCode.trim()){toast('삭제코드를 입력해 주세요.');return;}
+      const c=courses.find(x=>String(x.id)===String(id));
+      if(!c){toast('프로그램 정보를 찾을 수 없습니다.');return;}
+      courseDeleteState={id:c.id,programName:c.program_name||'프로그램'};
+      $('courseDeleteModalBody').innerHTML=`
+        <div class="notice" style="margin:0 0 18px;font-size:1.08rem;line-height:1.65">
+          <b>${esc(c.program_name||'프로그램')}</b>을(를) 삭제합니다.<br>
+          삭제하려면 <b>강좌등록 관리자 코드</b>를 다시 입력해 주세요.<br><br>
+          <span style="color:#b42318">프로그램을 삭제하면 해당 프로그램의 신청자·대기자 정보도 함께 삭제되며 되돌릴 수 없습니다.</span>
+        </div>
+        <form id="courseDeleteForm" class="form">
+          <div class="field">
+            <label for="courseDeleteCode">관리자 코드</label>
+            <input id="courseDeleteCode" type="password" autocomplete="off" placeholder="관리자 코드를 입력해 주세요" required />
+          </div>
+          <button class="danger-lite full" type="submit">프로그램 삭제</button>
+          <button id="closeCourseDeleteModal" class="secondary full" type="button">닫기</button>
+        </form>`;
+      $('courseDeleteModal').classList.add('open');
+      setTimeout(()=>$('courseDeleteCode')?.focus(),50);
+      $('closeCourseDeleteModal').addEventListener('click',closeCourseDeleteModal);
+      $('courseDeleteForm').addEventListener('submit',confirmCourseDelete);
+    }
+
+    function closeCourseDeleteModal(){
+      courseDeleteState=null;
+      $('courseDeleteModal').classList.remove('open');
+      $('courseDeleteModalBody').innerHTML='';
+    }
+
+    async function confirmCourseDelete(e){
+      e.preventDefault();
+      if(!courseDeleteState) return;
+      const code=String($('courseDeleteCode')?.value||'').trim();
+      if(!code){toast('관리자 코드를 입력해 주세요.');return;}
+      const state={...courseDeleteState};
+      const submitBtn=e.submitter||$('courseDeleteForm').querySelector('button[type="submit"]');
+      if(submitBtn){submitBtn.disabled=true;submitBtn.textContent='삭제 중...';}
       try{
         if(isDemo){
-          if(await sha256(deleteCode.trim())!==REGISTER_CODE_HASH){toast('삭제코드가 맞지 않습니다.');return;}
+          if(await sha256(code)!==REGISTER_CODE_HASH) throw new Error('invalid admin code');
+          demoSet(DEMO_COURSE_KEY,demoGet(DEMO_COURSE_KEY).filter(x=>String(x.id)!==String(state.id)));
+          demoSet(DEMO_APP_KEY,demoGet(DEMO_APP_KEY).filter(a=>String(a.course_id)!==String(state.id)));
         }else{
-          const {data,error}=await sb.rpc('verify_admin_code',{p_role:'course_register',p_code:deleteCode.trim()});
-          if(error||!data){toast('삭제코드가 맞지 않습니다.');return;}
+          const {error}=await sb.rpc('admin_delete_course',{p_code:code,p_course_id:state.id});
+          if(error) throw error;
         }
-        const ok=confirm(`“${c.program_name}” 강좌를 정말 삭제할까요?\n\n이 강좌의 신청자 정보도 함께 삭제됩니다.`); if(!ok) return;
-        if(isDemo){
-          demoSet(DEMO_COURSE_KEY,demoGet(DEMO_COURSE_KEY).filter(x=>String(x.id)!==String(id)));
-          demoSet(DEMO_APP_KEY,demoGet(DEMO_APP_KEY).filter(a=>String(a.course_id)!==String(id)));
-        }else{ const {error}=await sb.rpc('admin_delete_course',{p_code:deleteCode.trim(),p_course_id:id}); if(error) throw error; }
-        if(String(editingCourseId)===String(id)) resetCourseForm(); await loadCourses(true); renderManageCourses(); toast('강좌가 삭제되었습니다.');
-      }catch(err){console.error(err);toast('강좌 삭제에 실패했습니다.');}
+        closeCourseDeleteModal();
+        if(String(editingCourseId)===String(state.id)) resetCourseForm();
+        await loadCourses(true);
+        renderManageCourses();
+        toast('프로그램이 삭제되었습니다.');
+      }catch(err){
+        console.error(err);
+        const msg=String(err?.message||err?.details||'');
+        if(msg.includes('invalid admin code')||msg.includes('invalid_admin_code')) toast('관리자 코드가 맞지 않습니다.');
+        else if(msg.includes('course not found')||msg.includes('course_not_found')) toast('이미 삭제되었거나 프로그램 정보가 없습니다.');
+        else toast('프로그램 삭제 중 오류가 발생했습니다.');
+        if(submitBtn){submitBtn.disabled=false;submitBtn.textContent='프로그램 삭제';}
+      }
     }
 
     async function submitApplication(e){
@@ -1143,19 +1200,26 @@
 
     function renderAdminCourses(){
       const box=$('adminCourseList'); if(!adminSessionCode){go('admin-code');return;}
-      if(!courses.length){box.innerHTML='<div class="empty">등록된 강좌가 없습니다.</div>';updateSearchNote('admin',0);return;}
+      $('adminApplicantsArea').innerHTML='';
+      if(!courses.length){box.innerHTML='<div class="empty">등록된 강좌가 없습니다.</div>';updateSearchNote('admin',0);coursePageState.admin=1;return;}
       const filtered=filterCoursesBySearch(courses,'admin');
       updateSearchNote('admin',filtered.length);
-      if(!filtered.length){box.innerHTML='<div class="empty">검색 조건에 맞는 프로그램이 없습니다.</div>';return;}
-      box.innerHTML=filtered.map(c=>`<article class="admin-course">
+      if(!filtered.length){box.innerHTML='<div class="empty">검색 조건에 맞는 프로그램이 없습니다.</div>';coursePageState.admin=1;return;}
+      const totalPages=Math.max(1,Math.ceil(filtered.length/PAGE_SIZE));
+      coursePageState.admin=Math.min(Math.max(1,coursePageState.admin||1),totalPages);
+      const start=(coursePageState.admin-1)*PAGE_SIZE;
+      const pageItems=filtered.slice(start,start+PAGE_SIZE);
+      box.innerHTML=pageItems.map(c=>`<article class="admin-course" data-admin-course-card="${esc(c.id)}">
         <h3><button class="admin-course-title" type="button" data-admin-all="${esc(c.id)}" aria-label="${esc(c.program_name)} 신청자와 대기자 함께 보기">${esc(c.program_name)}</button></h3>
         <div class="admin-counts">
           <button class="number-btn static" type="button"><span>모집</span><strong>${num(c.capacity)}명</strong></button>
           <button class="number-btn static" type="button"><span>신청</span><strong>${num(c.accepted_count)}명</strong></button>
           <button class="number-btn static" type="button"><span>대기</span><strong>${num(c.waiting_count)} / 2명</strong></button>
         </div>
-      </article>`).join('');
+        <div class="admin-inline-applicants" data-admin-inline="${esc(c.id)}"></div>
+      </article>`).join('')+paginationHtml('admin',coursePageState.admin,totalPages,filtered.length);
       box.querySelectorAll('[data-admin-all]').forEach(b=>b.addEventListener('click',()=>showAllApplicants(b.dataset.adminAll)));
+      bindPagination(box,'admin');
     }
 
     async function getApplicants(courseId=null){
@@ -1179,17 +1243,22 @@
         const accepted=all.filter(r=>r.status==='신청');
         const waiting=all.filter(r=>r.status==='대기');
         adminFilter={courseId,status:'전체'};
-        const area=$('adminApplicantsArea');
+        document.querySelectorAll('.admin-inline-applicants').forEach(el=>{
+          if(String(el.dataset.adminInline)!==String(courseId)) el.innerHTML='';
+        });
+        const area=document.querySelector(`.admin-inline-applicants[data-admin-inline="${courseId}"]`);
+        if(!area){toast('해당 프로그램을 현재 페이지에서 찾을 수 없습니다.');return;}
         area.innerHTML=`
-          <div style="margin-top:24px">
-            <h3 style="margin:0;font-size:1.35rem">${esc(c?.program_name||'')} · 신청자/대기자 전체</h3>
+          <div>
+            <h3 style="margin:0;font-size:1.22rem">${esc(c?.program_name||'')} · 신청자/대기자 전체</h3>
             <div class="admin-combined-summary">
               <span class="admin-summary-chip accepted">신청 ${accepted.length}명</span>
               <span class="admin-summary-chip waiting">대기 ${waiting.length} / 2명</span>
             </div>
           </div>
-          ${all.length?adminApplicantRows(all):'<div class="empty" style="margin-top:14px">현재 신청자와 대기자가 없습니다.</div>'}`;
-        area.scrollIntoView({behavior:'smooth',block:'start'});
+          ${all.length?adminApplicantRows(all):'<div class="empty" style="margin-top:12px">현재 신청자와 대기자가 없습니다.</div>'}`;
+        area.querySelectorAll('[data-admin-cancel]').forEach(b=>b.addEventListener('click',()=>openAdminCancelModal(b.dataset.adminCancel,b.dataset.name,b.dataset.courseId,b.dataset.status)));
+        area.scrollIntoView({behavior:'smooth',block:'nearest'});
       }catch(err){console.error(err);toast('신청자 정보를 불러오지 못했습니다.')}
     }
 
