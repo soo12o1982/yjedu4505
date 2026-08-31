@@ -301,7 +301,7 @@
         </div>
         <div class="field">
           <label for="applicationPin">수정·취소 비밀번호 (숫자 4자리)</label>
-          <input id="applicationPin" type="password" inputmode="numeric" pattern="[0-9]{4}" minlength="4" maxlength="4" autocomplete="new-password" placeholder="숫자 4자리" required />
+          <input id="applicationPin" type="password" inputmode="numeric" pattern="[0-9]{4}" minlength="4" maxlength="4" autocomplete="new-password" placeholder="숫자 4자리" required oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,4)" />
           <div class="hint">신청정보를 수정하거나 취소할 때 필요합니다. 꼭 기억해 주세요.</div>
         </div>
         <button class="primary full" type="submit">신청완료</button>
@@ -356,6 +356,13 @@
       <div class="btn-row"><button id="closeNoticeModal" class="primary full" type="button">닫기</button></div>
     </div>
   </div>
+
+  <div id="adminCancelModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="adminCancelModalTitle">
+    <div class="modal-card">
+      <div class="modal-head"><h2 id="adminCancelModalTitle">관리자 신청취소</h2><button id="closeAdminCancelModalTop" class="icon-btn" aria-label="닫기">×</button></div>
+      <div id="adminCancelModalBody"></div>
+    </div>
+  </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -385,6 +392,7 @@
     let editingCourseId = null;
     let currentCourseTab = 'open';
     let studentActionState = null;
+    let adminCancelState = null;
 
     const $ = (id) => document.getElementById(id);
     const esc = (v='') => String(v).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
@@ -424,7 +432,11 @@
       $('closeNoticeModal').addEventListener('click',closeNoticeModal);
       $('closeNoticeModalTop').addEventListener('click',closeNoticeModal);
       $('noticeModal').addEventListener('click',e=>{if(e.target===$('noticeModal'))closeNoticeModal()});
+      $('closeAdminCancelModalTop').addEventListener('click',closeAdminCancelModal);
+      $('adminCancelModal').addEventListener('click',e=>{if(e.target===$('adminCancelModal'))closeAdminCancelModal()});
       document.addEventListener('click',e=>{
+        const adminCancel=e.target.closest('[data-admin-cancel]');
+        if(adminCancel){openAdminCancelModal(adminCancel.dataset.adminCancel,adminCancel.dataset.name,adminCancel.dataset.courseId,adminCancel.dataset.status);return;}
         const edit=e.target.closest('[data-student-edit]');
         if(edit){openStudentAction(edit.dataset.studentEdit,edit.dataset.courseId,'edit');return;}
         const cancel=e.target.closest('[data-student-cancel]');
@@ -817,7 +829,7 @@
       e.preventDefault(); const courseId=$('applyCourseId').value; const gender=document.querySelector('input[name="gender"]:checked')?.value||'';
       const current=courses.find(x=>String(x.id)===String(courseId));
       if(current && isCourseClosed(current)){toast('신청이 마감된 강좌입니다.');currentCourseTab='closed';go('courses');return;}
-      const pin=String($('applicationPin').value||'').trim();
+      const pin=String($('applicationPin').value||'').replace(/[^0-9]/g,'').slice(0,4);
       const payload={course_id:courseId,name:$('applicantName').value.trim(),gender,birth_year:num($('birthYear').value),phone:normalizePhone($('phone').value),neighborhood:$('neighborhood').value.trim(),vehicle_no:String($('vehicleNo').value||'').trim(),pin};
       if(payload.phone.length<10){toast('연락처를 확인해 주세요.');return;}
       if(!/^\d{4}$/.test(pin)){toast('수정·취소 비밀번호는 숫자 4자리로 입력해 주세요.');return;}
@@ -837,7 +849,16 @@
         $('applicationForm').style.display='none'; $('applicationResult').style.display='block';
         $('applicationResult').innerHTML=`<div class="big">신청이 완료되었습니다.</div><div><b>${esc(c?.program_name||'강좌')}</b></div><div style="margin-top:10px">내 신청 순서: <b>${num(result?.position)}번</b> · 휴대폰 끝자리 <b>${esc(payload.phone.slice(-4))}</b></div><div style="margin-top:6px">현재 상태: <b>${esc(result?.status||'신청')}</b></div><div class="notice" style="margin:14px 0 0"><b>수정·취소 비밀번호 4자리를 꼭 기억해 주세요.</b><br>신청 순서 화면에서 수정하기 또는 취소하기를 누를 때 필요합니다.</div><div style="margin-top:12px">모집 ${num(c?.capacity)}명 · 신청 ${num(c?.accepted_count)}명 · 대기 ${num(c?.waiting_count)} / 2명</div><div class="btn-row"><button class="secondary full" type="button" data-go-after="courses">다른 강좌 보기</button></div>`;
         $('applicationResult').querySelector('[data-go-after]').addEventListener('click',()=>go('courses'));
-      }catch(err){console.error(err);toast('신청 중 오류가 발생했습니다.')}
+      }catch(err){
+        console.error(err);
+        const msg=String(err?.message||err?.details||'');
+        if(msg.includes('pin_must_be_4_digits')) toast('비밀번호는 숫자 4자리로 입력해 주세요.');
+        else if(msg.includes('application_closed_by_date')) toast('신청기간이 마감된 강좌입니다.');
+        else if(msg.includes('application_closed_by_waitlist')) toast('신청과 대기접수가 모두 마감되었습니다.');
+        else if(msg.includes('duplicate_course_application')) toast('이미 신청한 강좌입니다.');
+        else if(msg.includes('max_programs_5')) showInfoModal('디지털 멘토와 함께하는 1:1학습에 신청해 주셔서 감사합니다. 본 사업은 더 많은 분들에게 참여 기회를 드리기 위해 1인당 최대 5개 프로그램만 신청이 가능합니다. 귀하께서는 현재 참여하신 프로그램이 초과되어 신청이 불가합니다. (문의 051-665-4505)');
+        else toast('신청 처리 중 오류가 발생했습니다. 입력내용을 다시 확인해 주세요.');
+      }
     }
 
     function renderAdminCourses(){
@@ -865,9 +886,74 @@
         const all=await getApplicants(courseId); const rows=all.filter(r=>r.status===status); const c=courses.find(x=>String(x.id)===String(courseId)); adminFilter={courseId,status};
         const area=$('adminApplicantsArea');
         if(!rows.length){area.innerHTML=`<h3 style="margin-top:24px">${esc(c?.program_name||'')} · ${esc(status)}자</h3><div class="empty">해당 신청자가 없습니다.</div>`;return;}
-        area.innerHTML=`<h3 style="margin-top:24px">${esc(c?.program_name||'')} · ${esc(status)}자 ${rows.length}명</h3><div class="table-wrap"><table><thead><tr><th>순번</th><th>이름</th><th>성별</th><th>출생년도</th><th>연락처</th><th>거주지</th><th>차량번호</th><th>상태</th><th>신청일시</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${num(r.sequence)}</td><td>${esc(r.name)}</td><td>${esc(r.gender)}</td><td>${esc(r.birth_year)}</td><td>${esc(formatPhone(r.phone||''))}</td><td>${esc(r.neighborhood)}</td><td>${esc(r.vehicle_no||'-')}</td><td>${esc(r.status)}</td><td>${esc(formatDateTime(r.applied_at||r.created_at))}</td></tr>`).join('')}</tbody></table></div>`;
+        area.innerHTML=`<h3 style="margin-top:24px">${esc(c?.program_name||'')} · ${esc(status)}자 ${rows.length}명</h3><div class="table-wrap"><table><thead><tr><th>순번</th><th>이름</th><th>성별</th><th>출생년도</th><th>연락처</th><th>거주지</th><th>차량번호</th><th>상태</th><th>신청일시</th><th>관리</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${num(r.sequence)}</td><td>${esc(r.name)}</td><td>${esc(r.gender)}</td><td>${esc(r.birth_year)}</td><td>${esc(formatPhone(r.phone||''))}</td><td>${esc(r.neighborhood)}</td><td>${esc(r.vehicle_no||'-')}</td><td>${esc(r.status)}</td><td>${esc(formatDateTime(r.applied_at||r.created_at))}</td><td><button class="danger-lite" type="button" data-admin-cancel="${esc(r.application_id||r.id)}" data-name="${esc(r.name)}" data-course-id="${esc(r.course_id)}" data-status="${esc(r.status)}" style="white-space:nowrap;font-size:1rem;padding:10px 12px">신청취소</button></td></tr>`).join('')}</tbody></table></div>`;
         area.scrollIntoView({behavior:'smooth',block:'start'});
       }catch(err){console.error(err);toast('신청자 정보를 불러오지 못했습니다.')}
+    }
+
+    function openAdminCancelModal(applicationId,name,courseId,status){
+      if(!applicationId){toast('신청정보를 확인할 수 없습니다.');return;}
+      adminCancelState={applicationId,name:name||'',courseId,status:status||''};
+      $('adminCancelModalBody').innerHTML=`
+        <div class="notice" style="margin:0 0 18px;font-size:1.12rem;line-height:1.65">
+          <b>${esc(name||'신청자')}</b>님의 ${esc(status||'신청')} 정보를 취소합니다.<br>
+          관리자 취소는 <b>교육일자와 관계없이 언제든 처리</b>할 수 있습니다.<br>
+          취소하면 신청자 현황과 엑셀 목록에서 더 이상 보이지 않습니다.
+        </div>
+        <form id="adminCancelForm" class="form">
+          <div class="field">
+            <label for="adminCancelCode">관리자 코드</label>
+            <input id="adminCancelCode" type="password" autocomplete="off" placeholder="관리자 코드를 입력해 주세요" required style="font-size:1.2rem" />
+          </div>
+          <button class="danger-lite full" type="submit" style="font-size:1.15rem;padding:16px">신청취소 처리</button>
+          <button id="closeAdminCancelModal" class="secondary full" type="button" style="font-size:1.1rem;padding:15px">닫기</button>
+        </form>`;
+      $('adminCancelModal').classList.add('show');
+      $('adminCancelModal').classList.add('open');
+      $('adminCancelModal').style.display='flex';
+      setTimeout(()=>$('adminCancelCode')?.focus(),50);
+      $('closeAdminCancelModal').addEventListener('click',closeAdminCancelModal);
+      $('adminCancelForm').addEventListener('submit',confirmAdminCancel);
+    }
+
+    function closeAdminCancelModal(){
+      adminCancelState=null;
+      $('adminCancelModal').classList.remove('show','open');
+      $('adminCancelModal').style.display='';
+      $('adminCancelModalBody').innerHTML='';
+    }
+
+    async function confirmAdminCancel(e){
+      e.preventDefault();
+      if(!adminCancelState) return;
+      const code=String($('adminCancelCode')?.value||'').trim();
+      if(!code){toast('관리자 코드를 입력해 주세요.');return;}
+      const state={...adminCancelState};
+      const submitBtn=e.submitter||$('adminCancelForm').querySelector('button[type="submit"]');
+      if(submitBtn){submitBtn.disabled=true;submitBtn.textContent='취소 처리 중...';}
+      try{
+        if(isDemo){
+          if(await sha256(code)!==ADMIN_CODE_HASH) throw new Error('invalid_admin_code');
+          demoSet(DEMO_APP_KEY,demoGet(DEMO_APP_KEY).filter(a=>String(a.id)!==String(state.applicationId)));
+        }else{
+          const {error}=await sb.rpc('admin_cancel_application',{p_code:code,p_application_id:state.applicationId});
+          if(error) throw error;
+        }
+        closeAdminCancelModal();
+        await loadCourses(true);
+        if($('page-admin').classList.contains('active')){
+          renderAdminCourses();
+          await showApplicants(state.courseId,state.status);
+        }
+        toast('신청취소가 처리되었습니다.');
+      }catch(err){
+        console.error(err);
+        const msg=String(err?.message||err?.details||'');
+        if(msg.includes('invalid_admin_code')||msg.includes('invalid admin code')) toast('관리자 코드가 맞지 않습니다.');
+        else if(msg.includes('application_not_found')) toast('이미 취소되었거나 신청정보가 없습니다.');
+        else toast('신청취소 처리 중 오류가 발생했습니다.');
+        if(submitBtn){submitBtn.disabled=false;submitBtn.textContent='신청취소 처리';}
+      }
     }
 
     function formatDateTime(v){ if(!v)return''; try{return new Date(v).toLocaleString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}catch{return v} }
