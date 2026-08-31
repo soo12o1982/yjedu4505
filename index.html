@@ -837,6 +837,8 @@
         let result;
         if(isDemo){
           const apps=demoGet(DEMO_APP_KEY); const c=demoGet(DEMO_COURSE_KEY).find(x=>x.id===courseId); if(!c) throw new Error('course not found');
+          const samePhonePrograms=new Set(apps.filter(a=>normalizePhone(a.phone||'')===payload.phone).map(a=>String(a.course_id))).size;
+          if(samePhonePrograms>=5) throw new Error('max_programs_5');
           const before=apps.filter(a=>a.course_id===courseId).length;
           if(before>=num(c.capacity)+2 || new Date()>=courseCutoff(c)) throw new Error('application closed');
           const position=before+1;
@@ -856,7 +858,7 @@
         else if(msg.includes('application_closed_by_date')) toast('신청기간이 마감된 강좌입니다.');
         else if(msg.includes('application_closed_by_waitlist')) toast('신청과 대기접수가 모두 마감되었습니다.');
         else if(msg.includes('duplicate_course_application')) toast('이미 신청한 강좌입니다.');
-        else if(msg.includes('max_programs_5')) showInfoModal('디지털 멘토와 함께하는 1:1학습에 신청해 주셔서 감사합니다. 본 사업은 더 많은 분들에게 참여 기회를 드리기 위해 1인당 최대 5개 프로그램만 신청이 가능합니다. 귀하께서는 현재 참여하신 프로그램이 초과되어 신청이 불가합니다. (문의 051-665-4505)');
+        else if(msg.includes('max_programs_5')) showNotice('디지털 멘토와 함께하는 1:1학습에 신청해 주셔서 감사합니다. 본 사업은 더 많은 분들에게 참여 기회를 드리기 위해 1인당 최대 5개 프로그램만 신청이 가능합니다. 귀하께서는 현재 참여하신 프로그램이 초과되어 신청이 불가합니다. (문의 051-665-4505)','신청 제한 안내');
         else toast('신청 처리 중 오류가 발생했습니다. 입력내용을 다시 확인해 주세요.');
       }
     }
