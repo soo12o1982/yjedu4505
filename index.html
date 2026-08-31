@@ -63,6 +63,15 @@
     .page-title{margin:0;font-size:clamp(1.55rem,6vw,2.1rem);line-height:1.25;letter-spacing:-.035em}
     .page-desc{margin:7px 0 0;color:var(--muted);font-size:1rem}
     .notice{border:1px solid var(--line);border-radius:16px;background:var(--soft);padding:16px 17px;margin:14px 0 18px;font-size:.96rem}
+    .course-search-box{border:1.5px solid #9a9a9a;border-radius:18px;background:#fafafa;padding:16px;margin:0 0 18px}
+    .course-search-title{font-size:1.16rem;font-weight:900;margin:0 0 12px;letter-spacing:-.02em}
+    .course-search-grid{display:grid;grid-template-columns:1fr 1.35fr;gap:10px;align-items:end}
+    .course-search-box .field{margin:0}
+    .course-search-box .field label{font-size:1rem}
+    .course-search-box select,.course-search-box input{min-height:56px!important;font-size:1.08rem!important;font-weight:750}
+    .course-search-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}
+    .course-search-actions button{min-height:52px}
+    .search-result-note{font-size:.9rem;color:var(--muted);font-weight:800;margin-top:9px}
     .course-tabs{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:0 0 16px}
     .course-tab{min-height:58px;border-radius:15px;border:2px solid;padding:10px 12px;font-size:1.08rem;font-weight:900;background:#fff}
     .course-tab.open{border-color:var(--blue);color:#174ea6;background:var(--blue-soft)}
@@ -193,6 +202,8 @@
       .public-status-row{align-items:flex-start;flex-direction:column}
       .student-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}
       .student-action-btn{width:100%;font-size:.92rem;min-height:46px}
+      .course-search-grid{grid-template-columns:1fr}
+      .course-search-box{padding:14px}
     }
   </style>
 </head>
@@ -226,6 +237,15 @@
         <button class="back-btn" data-go="home">← 처음</button>
         <div><h2 class="page-title" id="coursesTitle">강좌신청하기 <span style="font-size:.58em;color:var(--muted)">(학습자용)</span></h2><p class="page-desc">강좌 이름을 누르면 자세한 내용을 볼 수 있습니다.</p></div>
       </div>
+      <div class="course-search-box" aria-label="학습자용 강좌검색">
+        <div class="course-search-title">강좌검색</div>
+        <div class="course-search-grid">
+          <div class="field"><label for="coursesSearchType">찾는 방법</label><select id="coursesSearchType"><option value="mentor">멘토로 찾기</option><option value="level">난이도로 찾기</option><option value="program" selected>프로그램명으로 찾기</option></select></div>
+          <div id="coursesSearchValueBox" class="field"></div>
+        </div>
+        <div class="course-search-actions"><button id="coursesSearchBtn" class="primary" type="button">검색</button><button id="coursesSearchReset" class="secondary" type="button">전체보기</button></div>
+        <div id="coursesSearchNote" class="search-result-note">전체 강좌를 보고 있습니다.</div>
+      </div>
       <div class="course-tabs" role="tablist" aria-label="강좌 신청 상태">
         <button id="tabOpen" class="course-tab open" type="button" role="tab" aria-selected="true">신청중</button>
         <button id="tabClosed" class="course-tab closed" type="button" role="tab" aria-selected="false">신청마감</button>
@@ -250,6 +270,15 @@
       <div class="page-head">
         <button class="back-btn" data-go="home">← 처음</button>
         <div><h2 class="page-title" id="registerTitle">강좌 등록·관리</h2><p class="page-desc">새 강좌를 등록하거나 기존 강좌를 수정·삭제할 수 있습니다.</p></div>
+      </div>
+      <div class="course-search-box" aria-label="멘토용 강좌검색">
+        <div class="course-search-title">강좌검색</div>
+        <div class="course-search-grid">
+          <div class="field"><label for="registerSearchType">찾는 방법</label><select id="registerSearchType"><option value="mentor">멘토로 찾기</option><option value="level">난이도로 찾기</option><option value="program" selected>프로그램명으로 찾기</option></select></div>
+          <div id="registerSearchValueBox" class="field"></div>
+        </div>
+        <div class="course-search-actions"><button id="registerSearchBtn" class="primary" type="button">검색</button><button id="registerSearchReset" class="secondary" type="button">전체보기</button></div>
+        <div id="registerSearchNote" class="search-result-note">전체 강좌를 보고 있습니다.</div>
       </div>
       <section class="manage-box" aria-labelledby="manageTitle">
         <h3 id="manageTitle">등록 강좌 관리</h3>
@@ -333,6 +362,15 @@
         <button class="back-btn" data-go="home">← 처음</button>
         <div><h2 class="page-title" id="adminTitle">신청자 현황</h2><p class="page-desc">프로그램명을 누르면 신청자와 대기자 정보를 한 화면에서 함께 확인할 수 있습니다.</p></div>
       </div>
+      <div class="course-search-box" aria-label="관리자용 강좌검색">
+        <div class="course-search-title">강좌검색</div>
+        <div class="course-search-grid">
+          <div class="field"><label for="adminSearchType">찾는 방법</label><select id="adminSearchType"><option value="mentor">멘토로 찾기</option><option value="level">난이도로 찾기</option><option value="program" selected>프로그램명으로 찾기</option></select></div>
+          <div id="adminSearchValueBox" class="field"></div>
+        </div>
+        <div class="course-search-actions"><button id="adminSearchBtn" class="primary" type="button">검색</button><button id="adminSearchReset" class="secondary" type="button">전체보기</button></div>
+        <div id="adminSearchNote" class="search-result-note">전체 강좌를 보고 있습니다.</div>
+      </div>
       <div id="adminCourseList" class="admin-list"></div>
       <div class="btn-row"><button id="excelDownload" class="primary full" type="button">전체 신청자 엑셀 다운로드</button></div>
       <div id="adminApplicantsArea"></div>
@@ -399,6 +437,11 @@
     let currentCourseTab = 'open';
     let studentActionState = null;
     let adminCancelState = null;
+    const courseSearchState = {
+      courses:{type:'program',value:'',applied:''},
+      register:{type:'program',value:'',applied:''},
+      admin:{type:'program',value:'',applied:''}
+    };
 
     const $ = (id) => document.getElementById(id);
     const esc = (v='') => String(v).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
@@ -416,6 +459,116 @@
     function toast(message){
       const t=$('toast'); t.textContent=message; t.classList.add('show');
       clearTimeout(toast._timer); toast._timer=setTimeout(()=>t.classList.remove('show'),2300);
+    }
+
+    const SEARCH_IDS={
+      courses:{type:'coursesSearchType',box:'coursesSearchValueBox',button:'coursesSearchBtn',reset:'coursesSearchReset',note:'coursesSearchNote'},
+      register:{type:'registerSearchType',box:'registerSearchValueBox',button:'registerSearchBtn',reset:'registerSearchReset',note:'registerSearchNote'},
+      admin:{type:'adminSearchType',box:'adminSearchValueBox',button:'adminSearchBtn',reset:'adminSearchReset',note:'adminSearchNote'}
+    };
+
+    function mentorNames(){
+      return [...new Set(courses.map(c=>String(c.mentor_name||'').trim()).filter(Boolean))]
+        .sort((a,b)=>a.localeCompare(b,'ko-KR'));
+    }
+
+    function searchTypeLabel(type){
+      return type==='mentor'?'멘토':type==='level'?'난이도':'프로그램명';
+    }
+
+    function renderSearchValueControl(scope){
+      const ids=SEARCH_IDS[scope]; if(!ids||!$(ids.box)||!$(ids.type)) return;
+      const state=courseSearchState[scope];
+      $(ids.type).value=state.type;
+      const box=$(ids.box);
+      if(state.type==='mentor'){
+        const mentors=mentorNames();
+        box.innerHTML=`<label for="${scope}SearchValue">멘토 선택</label><select id="${scope}SearchValue"><option value="">전체 멘토</option>${mentors.map(name=>`<option value="${esc(name)}" ${state.value===name?'selected':''}>${esc(name)}</option>`).join('')}</select>`;
+      }else if(state.type==='level'){
+        const levels=['기초','중급','고급','기타'];
+        box.innerHTML=`<label for="${scope}SearchValue">난이도 선택</label><select id="${scope}SearchValue"><option value="">전체 난이도</option>${levels.map(level=>`<option value="${level}" ${state.value===level?'selected':''}>${level}</option>`).join('')}</select>`;
+      }else{
+        box.innerHTML=`<label for="${scope}SearchValue">프로그램명</label><input id="${scope}SearchValue" type="search" maxlength="100" value="${esc(state.value)}" placeholder="프로그램명 키워드를 입력하세요" autocomplete="off" />`;
+      }
+      const input=$(`${scope}SearchValue`);
+      if(input){
+        input.addEventListener('input',()=>{state.value=input.value;});
+        input.addEventListener('change',()=>{state.value=input.value;});
+        input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();applyCourseSearch(scope);}});
+      }
+    }
+
+    function initCourseSearch(scope){
+      const ids=SEARCH_IDS[scope]; if(!ids) return;
+      const typeEl=$(ids.type); if(!typeEl) return;
+      typeEl.addEventListener('change',()=>{
+        courseSearchState[scope].type=typeEl.value;
+        courseSearchState[scope].value='';
+        courseSearchState[scope].applied='';
+        renderSearchValueControl(scope);
+        renderSearchTarget(scope);
+        updateSearchNote(scope);
+      });
+      $(ids.button)?.addEventListener('click',()=>applyCourseSearch(scope));
+      $(ids.reset)?.addEventListener('click',()=>resetCourseSearch(scope));
+      renderSearchValueControl(scope);
+      updateSearchNote(scope);
+    }
+
+    function applyCourseSearch(scope){
+      const state=courseSearchState[scope];
+      const input=$(`${scope}SearchValue`);
+      state.value=String(input?.value||'').trim();
+      state.applied=state.value;
+      renderSearchTarget(scope);
+      updateSearchNote(scope);
+      if(scope==='admin') $('adminApplicantsArea').innerHTML='';
+    }
+
+    function resetCourseSearch(scope){
+      const state=courseSearchState[scope];
+      state.value=''; state.applied='';
+      renderSearchValueControl(scope);
+      renderSearchTarget(scope);
+      updateSearchNote(scope);
+      if(scope==='admin') $('adminApplicantsArea').innerHTML='';
+    }
+
+    function refreshCourseSearchControls(){
+      ['courses','register','admin'].forEach(scope=>{
+        if(courseSearchState[scope].type==='mentor'){
+          const names=mentorNames();
+          if(courseSearchState[scope].value && !names.includes(courseSearchState[scope].value)){
+            courseSearchState[scope].value=''; courseSearchState[scope].applied='';
+          }
+        }
+        renderSearchValueControl(scope);
+        updateSearchNote(scope);
+      });
+    }
+
+    function filterCoursesBySearch(list,scope){
+      const state=courseSearchState[scope];
+      const value=String(state?.applied||'').trim();
+      if(!value) return list;
+      if(state.type==='mentor') return list.filter(c=>String(c.mentor_name||'').trim()===value);
+      if(state.type==='level') return list.filter(c=>String(c.level||'').trim()===value);
+      const key=value.toLocaleLowerCase('ko-KR');
+      return list.filter(c=>String(c.program_name||'').toLocaleLowerCase('ko-KR').includes(key));
+    }
+
+    function updateSearchNote(scope,count=null){
+      const ids=SEARCH_IDS[scope]; const note=ids&&$(ids.note); if(!note) return;
+      const state=courseSearchState[scope];
+      if(!state.applied){note.textContent='전체 강좌를 보고 있습니다.';return;}
+      const resultCount=count===null?filterCoursesBySearch(courses,scope).length:count;
+      note.textContent=`${searchTypeLabel(state.type)} “${state.applied}” 검색결과 ${resultCount}개`;
+    }
+
+    function renderSearchTarget(scope){
+      if(scope==='courses') renderCourses();
+      else if(scope==='register') renderManageCourses();
+      else if(scope==='admin') renderAdminCourses();
     }
 
     function go(name){
@@ -459,6 +612,9 @@
       $('courseExcelDownload').addEventListener('click',downloadCourseExcel);
       $('tabOpen').addEventListener('click',()=>setCourseTab('open'));
       $('tabClosed').addEventListener('click',()=>setCourseTab('closed'));
+      initCourseSearch('courses');
+      initCourseSearch('register');
+      initCourseSearch('admin');
 
       if(!isDemo){
         try{
@@ -549,6 +705,7 @@
           if(error) throw error; if(summaryError) throw summaryError; courses=data||[];
           publicApplicants={}; (summaryData||[]).forEach(r=>(publicApplicants[r.course_id]||(publicApplicants[r.course_id]=[])).push(r));
         }
+        refreshCourseSearchControls();
         renderCourses();
         if($('page-register').classList.contains('active')) renderManageCourses();
         if($('page-admin').classList.contains('active')) renderAdminCourses();
@@ -566,8 +723,10 @@
         const d=String(a.education_date||'').localeCompare(String(b.education_date||''));
         return d!==0 ? d : String(a.education_time||'').localeCompare(String(b.education_time||''));
       });
-      const filtered=sorted.filter(c=>currentCourseTab==='closed' ? isCourseClosed(c) : !isCourseClosed(c));
-      if(!filtered.length){box.innerHTML=`<div class="empty">${currentCourseTab==='closed'?'현재 마감된 강좌가 없습니다.':'현재 신청 가능한 강좌가 없습니다.'}</div>`;return;}
+      const byTab=sorted.filter(c=>currentCourseTab==='closed' ? isCourseClosed(c) : !isCourseClosed(c));
+      const filtered=filterCoursesBySearch(byTab,'courses');
+      updateSearchNote('courses',filtered.length);
+      if(!filtered.length){box.innerHTML=`<div class="empty">${courseSearchState.courses.applied?'검색 조건에 맞는 강좌가 없습니다.':(currentCourseTab==='closed'?'현재 마감된 강좌가 없습니다.':'현재 신청 가능한 강좌가 없습니다.')}</div>`;return;}
 
       box.innerHTML=filtered.map(c=>{
         const closed=isCourseClosed(c);
@@ -762,8 +921,11 @@
 
     function renderManageCourses(){
       const box=$('manageCourseList'); if(!box) return;
-      if(!courses.length){box.innerHTML='<div class="hint">등록된 강좌가 없습니다.</div>';return;}
-      box.innerHTML=courses.map(c=>`<div class="manage-item"><div class="manage-name">${esc(c.program_name)}</div><div class="manage-meta">${esc(dateText(c.education_date))} ${esc(c.weekday)} · ${esc(educationTimeText(c))} · 모집 ${num(c.capacity)}명 · 문의 ${esc(c.inquiry_phone||'-')}</div><div class="btn-row"><button class="secondary" type="button" data-edit-course="${esc(c.id)}">수정</button><button class="danger-lite" type="button" data-delete-course="${esc(c.id)}">삭제</button></div></div>`).join('');
+      if(!courses.length){box.innerHTML='<div class="hint">등록된 강좌가 없습니다.</div>';updateSearchNote('register',0);return;}
+      const filtered=filterCoursesBySearch(courses,'register');
+      updateSearchNote('register',filtered.length);
+      if(!filtered.length){box.innerHTML='<div class="empty">검색 조건에 맞는 등록 강좌가 없습니다.</div>';return;}
+      box.innerHTML=filtered.map(c=>`<div class="manage-item"><div class="manage-name">${esc(c.program_name)}</div><div class="manage-meta">${esc(dateText(c.education_date))} ${esc(c.weekday)} · ${esc(educationTimeText(c))} · 난이도 ${esc(c.level||'-')} · 멘토 ${esc(c.mentor_name||'-')} · 모집 ${num(c.capacity)}명 · 문의 ${esc(c.inquiry_phone||'-')}</div><div class="btn-row"><button class="secondary" type="button" data-edit-course="${esc(c.id)}">수정</button><button class="danger-lite" type="button" data-delete-course="${esc(c.id)}">삭제</button></div></div>`).join('');
       box.querySelectorAll('[data-edit-course]').forEach(b=>b.addEventListener('click',()=>editCourse(b.dataset.editCourse)));
       box.querySelectorAll('[data-delete-course]').forEach(b=>b.addEventListener('click',()=>deleteCourse(b.dataset.deleteCourse)));
     }
@@ -865,8 +1027,11 @@
 
     function renderAdminCourses(){
       const box=$('adminCourseList'); if(!adminSessionCode){go('admin-code');return;}
-      if(!courses.length){box.innerHTML='<div class="empty">등록된 강좌가 없습니다.</div>';return;}
-      box.innerHTML=courses.map(c=>`<article class="admin-course">
+      if(!courses.length){box.innerHTML='<div class="empty">등록된 강좌가 없습니다.</div>';updateSearchNote('admin',0);return;}
+      const filtered=filterCoursesBySearch(courses,'admin');
+      updateSearchNote('admin',filtered.length);
+      if(!filtered.length){box.innerHTML='<div class="empty">검색 조건에 맞는 프로그램이 없습니다.</div>';return;}
+      box.innerHTML=filtered.map(c=>`<article class="admin-course">
         <h3><button class="admin-course-title" type="button" data-admin-all="${esc(c.id)}" aria-label="${esc(c.program_name)} 신청자와 대기자 함께 보기">${esc(c.program_name)}</button></h3>
         <div class="admin-counts">
           <button class="number-btn static" type="button"><span>모집</span><strong>${num(c.capacity)}명</strong></button>
